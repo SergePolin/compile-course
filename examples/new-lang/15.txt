@@ -1,3 +1,4 @@
+// case: nested loops
 routine main() is
     var i: integer;
     var j: integer;

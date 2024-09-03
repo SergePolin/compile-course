@@ -1,3 +1,4 @@
+// case: arithmetic
 routine main() is
     var a: integer is 15;
     var b: integer is 5;

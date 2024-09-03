@@ -1,0 +1,6 @@
+Team: NSS
+Project: Imperative
+Target platform: JVM
+Implementation lang/tool : Java, bison-based parser
+Target language: Jasmin assembler
+Members: Eleonora Pikalo, Sergei Polin, Alexandra Egorova

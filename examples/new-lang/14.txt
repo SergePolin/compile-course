@@ -1,3 +1,4 @@
+// case: calculator
 routine main() is
     var a: integer;
     var b: integer;

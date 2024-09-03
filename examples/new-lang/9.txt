@@ -1,3 +1,4 @@
+// case: array
 var numbers: array [5] integer;
 
 routine main() is

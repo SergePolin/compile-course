@@ -1,3 +1,4 @@
+// case: recursion
 routine factorial(n: integer): integer is
     if n = 0 then
         return 1;

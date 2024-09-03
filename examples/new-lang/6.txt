@@ -1,3 +1,4 @@
+// case: for
 routine main() is
     var i: integer;
 

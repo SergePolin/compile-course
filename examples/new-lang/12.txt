@@ -1,3 +1,4 @@
+// case: string
 routine main() is
     var firstName: string is "John";
     var lastName: string is "Doe";

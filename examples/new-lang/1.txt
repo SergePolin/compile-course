@@ -1,3 +1,4 @@
+// case: print
 routine main() is
     print("Hello, World!");
 end;

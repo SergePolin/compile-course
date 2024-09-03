@@ -1,3 +1,4 @@
+// case: record
 type Person is record
     var name: string;
     var age: integer;

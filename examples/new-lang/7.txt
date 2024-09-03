@@ -1,3 +1,4 @@
+// case: reverse for
 routine main() is
     var i: integer;
 

@@ -1,3 +1,4 @@
+// case: variables
 routine main() is
     var integerVar: integer is 10;
     var realVar: real is 3.14;
