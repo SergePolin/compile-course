@@ -4,6 +4,11 @@ routine main() is
     var realVar: real is 3.14;
     var boolVar: boolean is true;
 
+    // case: conversion types
+    var intToReal: real is integerVar as real;
+    var realToInt: integer is realVar as integer;
+    var boolToInt: integer is boolVar as integer;
+
     print(integerVar);
     print(realVar);
     print(boolVar);
