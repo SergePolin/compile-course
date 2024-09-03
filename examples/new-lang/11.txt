@@ -3,7 +3,7 @@ routine main() is
     var a: boolean is true;
     var b: boolean is false;
 
-    print(a and b);  // Should print false
-    print(a or b);   // Should print true
-    print(not a);    // Should print false
+    print(a and b);
+    print(a or b);
+    print(not a);
 end;
