@@ -4,12 +4,27 @@ type Person is record
     var age: integer;
 end;
 
+// case: record based on another record
+type Student is record
+    extends Person;
+    var grade: integer;
+end;
+
 var john: Person;
+var jane: Student;
 
 routine main() is
     john.name := "John";
     john.age := 30;
 
+    jane.name := "Jane";
+    jane.age := 20;
+    jane.grade := 90;
+
     print(john.name);
     print(john.age);
+
+    print(jane.name);
+    print(jane.age);
+    print(jane.grade);
 end;
