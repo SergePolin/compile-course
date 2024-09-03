@@ -1,0 +1,9 @@
+routine main() is
+    var integerVar: integer is 10;
+    var realVar: real is 3.14;
+    var boolVar: boolean is true;
+
+    print(integerVar);
+    print(realVar);
+    print(boolVar);
+end;

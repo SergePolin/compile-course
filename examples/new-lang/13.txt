@@ -1,0 +1,6 @@
+routine main() is
+    var num: integer;
+    read(num);  // Assume there's a read function for input
+    var square: integer is num * num;
+    print(square);
+end;
