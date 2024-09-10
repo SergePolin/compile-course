@@ -9,6 +9,11 @@ routine main() is
     var realToInt: integer is realVar as integer;
     var boolToInt: integer is boolVar as integer;
 
+    // case: non-conversion types
+    var intToBool: boolean is integerVar as boolean;
+    var realToBool: boolean is realVar as boolean;
+    var boolToInt2: integer is boolVar as integer;
+
     print(integerVar);
     print(realVar);
     print(boolVar);

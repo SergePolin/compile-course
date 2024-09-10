@@ -6,4 +6,5 @@ routine main() is
     print(a and b);
     print(a or b);
     print(not a);
+    print(a xor b);
 end;

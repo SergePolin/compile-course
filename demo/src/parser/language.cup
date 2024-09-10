@@ -1,0 +1,43 @@
+import java_cup.runtime.*;
+
+parser code {:
+    public static void main(String[] args) throws Exception {
+        Lexer lexer = new Lexer(System.in);
+        Parser parser = new Parser(lexer);
+        parser.parse();
+    }
+:};
+
+/* Declare terminals */
+terminal PRINT, VAR, INTEGER, REAL, BOOLEAN, TRUE, FALSE;
+terminal ADD, SUB, MUL, DIV, ASSIGN, EQ, LPAREN, RPAREN, SEMICOLON, COLON;
+terminal IDENTIFIER, INTEGER_LITERAL, REAL_LITERAL, BOOLEAN_LITERAL;
+
+/* Declare non-terminals */
+non terminal program, declaration_list, declaration, statement, expression, type;  // <-- Added "type" here
+
+/* Precedence and associativity rules */
+precedence left ADD, SUB;
+precedence left MUL, DIV;
+
+program ::= declaration_list;
+
+declaration_list ::= declaration
+                   | declaration_list declaration;
+
+declaration ::= VAR IDENTIFIER COLON type ASSIGN expression SEMICOLON;
+
+type ::= INTEGER
+       | REAL
+       | BOOLEAN;
+
+statement ::= PRINT LPAREN expression RPAREN SEMICOLON;
+
+expression ::= INTEGER_LITERAL
+             | REAL_LITERAL
+             | BOOLEAN_LITERAL
+             | IDENTIFIER
+             | expression ADD expression
+             | expression SUB expression
+             | expression MUL expression
+             | expression DIV expression;
