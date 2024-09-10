@@ -4,7 +4,7 @@ import java.util.List;
 
 public class Lexer {
 
-    // Define token types
+    // Define token types for the language
     public enum TokenType {
         // Keywords
         VAR("var"),
@@ -59,8 +59,12 @@ public class Lexer {
         REAL_LITERAL("[0-9]+\\.[0-9]+"),
         STRING_LITERAL("\"[^\"]*\""),
 
-        // Identifiers (for variable names, routine names, etc.)
+        // Identifiers
         IDENTIFIER("[a-zA-Z_][a-zA-Z_0-9]*"),
+
+        // Comments
+        SINGLE_LINE_COMMENT("//[^\n]*"),
+        MULTI_LINE_COMMENT("/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"),
 
         // End of input
         EOF("EOF");
@@ -91,6 +95,7 @@ public class Lexer {
     // Lexer logic
     private String input;
     private List<Token> tokens;
+    private int line = 1;
 
     public Lexer(String input) {
         this.input = input;
@@ -100,15 +105,31 @@ public class Lexer {
     // Tokenize the input
     public List<Token> tokenize() {
         while (!input.isEmpty()) {
-            boolean match = false;
             input = input.trim(); // Remove leading whitespaces
+            boolean match = false;
 
+            // Handle newlines for error reporting
+            if (input.startsWith("\n")) {
+                input = input.substring(1);
+                line++;
+                continue;
+            }
+
+            // Match each token type
             for (TokenType tokenType : TokenType.values()) {
                 Pattern pattern = Pattern.compile("^" + tokenType.pattern);
                 Matcher matcher = pattern.matcher(input);
 
                 if (matcher.find()) {
                     String matchedText = matcher.group();
+
+                    // Skip comments and don't add them as tokens
+                    if (tokenType == TokenType.SINGLE_LINE_COMMENT || tokenType == TokenType.MULTI_LINE_COMMENT) {
+                        input = input.substring(matchedText.length());
+                        match = true;
+                        break;
+                    }
+
                     tokens.add(new Token(tokenType, matchedText));
                     input = input.substring(matchedText.length());
                     match = true;
@@ -116,29 +137,43 @@ public class Lexer {
                 }
             }
 
+            // Handle unexpected characters
             if (!match) {
-                throw new RuntimeException("Unexpected character: " + input.charAt(0));
+                throw new RuntimeException("Unexpected character: '" + input.charAt(0) + "' at line " + line);
             }
         }
 
+        // Append EOF at the end of input
         tokens.add(new Token(TokenType.EOF, ""));
         return tokens;
     }
 
     public static void main(String[] args) {
+        // Example source code that uses all features of the language
         String sourceCode = """
+                // Person record definition
                 type Person is record
                     var name: string;
                     var age: integer;
                 end;
 
+                /* Initialize person */
                 var john: Person;
 
                 routine main() is
-                    john.name := "John";
-                    john.age := 30;
+                    john.name := "John";  // Assign a name
+                    john.age := 30;       /* Assign age */
                     print(john.name);
                     print(john.age);
+                end;
+
+                // Factorial calculation
+                routine factorial(n: integer): integer is
+                    if n = 0 then
+                        return 1;
+                    else
+                        return n * factorial(n - 1);
+                    end;
                 end;
                 """;
 
