@@ -1,8 +1,0 @@
-routine main() is
-    var a: integer is 15;
-    var b: integer is 5;
-    var sum: integer is a + b;
-    var difference: integer is a - b;
-    var product: integer is a * b;
-    var quotient: integer is a / b;
-end;
