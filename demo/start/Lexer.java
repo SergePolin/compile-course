@@ -1,3 +1,4 @@
+import java.io.*;
 import java.util.regex.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -148,41 +149,42 @@ public class Lexer {
         return tokens;
     }
 
+    // Read the entire file content as a string
+    public static String readFile(String filePath) throws IOException {
+        StringBuilder contentBuilder = new StringBuilder();
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String currentLine;
+            while ((currentLine = br.readLine()) != null) {
+                contentBuilder.append(currentLine).append("\n");
+            }
+        }
+        return contentBuilder.toString();
+    }
+
     public static void main(String[] args) {
-        // Example source code that uses all features of the language
-        String sourceCode = """
-                // Person record definition
-                type Person is record
-                    var name: string;
-                    var age: integer;
-                end;
+        if (args.length != 1) {
+            System.out.println("Usage: java Lexer <file-path>");
+            return;
+        }
 
-                /* Initialize person */
-                var john: Person;
+        try {
+            // Read the input file
+            String filePath = args[0];
+            String sourceCode = readFile(filePath);
 
-                routine main() is
-                    john.name := "John";  // Assign a name
-                    john.age := 30;       /* Assign age */
-                    print(john.name);
-                    print(john.age);
-                end;
+            // Create a lexer and tokenize the file content
+            Lexer lexer = new Lexer(sourceCode);
+            List<Token> tokens = lexer.tokenize();
 
-                // Factorial calculation
-                routine factorial(n: integer): integer is
-                    if n = 0 then
-                        return 1;
-                    else
-                        return n * factorial(n - 1);
-                    end;
-                end;
-                """;
+            // Print tokens
+            for (Token token : tokens) {
+                System.out.println(token);
+            }
 
-        Lexer lexer = new Lexer(sourceCode);
-        List<Token> tokens = lexer.tokenize();
-
-        // Print tokens
-        for (Token token : tokens) {
-            System.out.println(token);
+        } catch (IOException e) {
+            System.err.println("Error reading file: " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.err.println("Lexical error: " + e.getMessage());
         }
     }
 }
