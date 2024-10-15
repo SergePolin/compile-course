@@ -1,7 +1,0 @@
-// case: input
-routine main() is
-    var num: integer;
-    read(num);
-    var square: integer is num * num;
-    print(square);
-end;
