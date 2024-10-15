@@ -1,3 +1,4 @@
+// case: while
 routine main() is
     var i: integer is 1;
 

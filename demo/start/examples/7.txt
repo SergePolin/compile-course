@@ -1,7 +1,8 @@
+// case: reverse for
 routine main() is
     var i: integer;
 
-    for i in reverse 5 .. 1 loop
+    for i in reverse 5..1 loop
         print(i);
     end;
 end;

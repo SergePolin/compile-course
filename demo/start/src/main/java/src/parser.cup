@@ -1,0 +1,153 @@
+package src;
+
+import java_cup.runtime.*;
+import java.util.*;
+
+parser code {:
+    public void syntax_error(Symbol cur_token) {
+        report_error("Syntax error at line " + cur_token.left + ", column " + cur_token.right + ": Unexpected " + sym.terminalNames[cur_token.sym], null);
+    }
+:};
+
+// Terminals
+terminal PLUS, MINUS, TIMES, DIVIDE, MODULO, LPAREN, RPAREN, LBRACKET, RBRACKET;
+terminal ASSIGN, EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL;
+terminal COLON, SEMICOLON, COMMA, DOT, RANGE;
+terminal VAR, ROUTINE, IS, END, IF, THEN, ELSE, WHILE, FOR, REVERSE, LOOP, PRINT, READ, RETURN, TYPE, RECORD, STRING, INTEGER;
+terminal AND, OR, NOT, XOR;
+terminal TRUE, FALSE;
+terminal ARRAY;
+terminal IN;
+terminal String IDENTIFIER, STRING_LITERAL;
+terminal Integer INTEGER_LITERAL;
+terminal Double REAL_LITERAL;
+
+// Non-terminals
+non terminal Program program;
+non terminal List<Declaration> declarations;
+non terminal Declaration declaration;
+non terminal RoutineDeclaration routine_declaration;
+non terminal TypeDeclaration type_declaration;
+non terminal VarDeclaration var_declaration;
+non terminal List<Parameter> parameter_list;
+non terminal Parameter parameter;
+non terminal Type type;
+non terminal List<Statement> statement_list;
+non terminal Statement statement;
+non terminal AssignmentStatement assignment_statement;
+non terminal IfStatement if_statement;
+non terminal WhileStatement while_statement;
+non terminal ForStatement for_statement;
+non terminal PrintStatement print_statement;
+non terminal ReadStatement read_statement;
+non terminal ReturnStatement return_statement;
+non terminal Expression expression;
+non terminal List<Expression> expression_list;
+
+// Precedences
+precedence left OR, XOR;
+precedence left AND;
+precedence right NOT;
+precedence nonassoc EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MODULO;
+precedence left DOT;
+precedence left LPAREN, LBRACKET;
+
+// Grammar rules
+start with program;
+
+program ::= declarations:decls EOF {: RESULT = new Program(decls); :}
+          | EOF {: RESULT = new Program(new ArrayList<>()); :};
+
+declarations ::= declaration:decl declarations:decls {: decls.add(0, decl); RESULT = decls; :}
+               | declaration:decl {: List<Declaration> decls = new ArrayList<>(); decls.add(decl); RESULT = decls; :};
+
+declaration ::= routine_declaration:rd {: RESULT = rd; :}
+              | type_declaration:td {: RESULT = td; :}
+              | var_declaration:vd {: RESULT = vd; :};
+
+routine_declaration ::= ROUTINE IDENTIFIER:name LPAREN parameter_list:params RPAREN IS statement_list:body END SEMICOLON
+                        {: RESULT = new RoutineDeclaration(name, params, body); :};
+
+type_declaration ::= TYPE IDENTIFIER:name IS RECORD var_declaration:fields END SEMICOLON
+                     {: RESULT = new TypeDeclaration(name, fields); :};
+
+var_declaration ::= VAR IDENTIFIER:name COLON type:t SEMICOLON
+                    {: RESULT = new VarDeclaration(name, t, null); :}
+                  | VAR IDENTIFIER:name COLON type:t IS expression:e SEMICOLON
+                    {: RESULT = new VarDeclaration(name, t, e); :};
+
+parameter_list ::= parameter:p COMMA parameter_list:pl {: pl.add(0, p); RESULT = pl; :}
+                 | parameter:p {: RESULT = new ArrayList<>(); RESULT.add(p); :}
+                 | /* empty */ {: RESULT = new ArrayList<>(); :};
+
+parameter ::= IDENTIFIER:name COLON type:t {: RESULT = new Parameter(name, t); :};
+
+type ::= IDENTIFIER:name {: RESULT = new SimpleType(name); :}
+       | ARRAY LBRACKET INTEGER_LITERAL:size RBRACKET type:t {: RESULT = new ArrayType(t, size); :}
+       | STRING {: RESULT = new SimpleType("string"); :}
+       | INTEGER {: RESULT = new SimpleType("integer"); :};
+
+statement_list ::= statement:s statement_list:sl {: sl.add(0, s); RESULT = sl; :}
+                 | /* empty */ {: RESULT = new ArrayList<>(); :};
+
+statement ::= var_declaration:vd {: RESULT = vd; :}
+            | assignment_statement:as {: RESULT = as; :}
+            | if_statement:is {: RESULT = is; :}
+            | while_statement:ws {: RESULT = ws; :}
+            | for_statement:fs {: RESULT = fs; :}
+            | print_statement:ps {: RESULT = ps; :}
+            | read_statement:rs {: RESULT = rs; :}
+            | return_statement:rs {: RESULT = rs; :}
+            | expression:e SEMICOLON {: RESULT = new ExpressionStatement(e); :};
+
+assignment_statement ::= IDENTIFIER:id ASSIGN expression:e SEMICOLON {: RESULT = new AssignmentStatement(id, e); :};
+
+if_statement ::= IF expression:cond THEN statement_list:thenBody ELSE statement_list:elseBody END SEMICOLON
+                 {: RESULT = new IfStatement(cond, thenBody, elseBody); :};
+
+while_statement ::= WHILE expression:cond LOOP statement_list:body END SEMICOLON
+                    {: RESULT = new WhileStatement(cond, body); :};
+
+for_statement ::= FOR IDENTIFIER:id IN expression:start RANGE expression:end LOOP statement_list:body END SEMICOLON
+                  {: RESULT = new ForStatement(id, start, end, body, false); :}
+                | FOR IDENTIFIER:id IN REVERSE expression:start RANGE expression:end LOOP statement_list:body END SEMICOLON
+                  {: RESULT = new ForStatement(id, start, end, body, true); :};
+
+print_statement ::= PRINT LPAREN expression:e RPAREN SEMICOLON {: RESULT = new PrintStatement(e); :};
+
+read_statement ::= READ LPAREN IDENTIFIER:id RPAREN SEMICOLON {: RESULT = new ReadStatement(id); :};
+
+return_statement ::= RETURN expression:e SEMICOLON {: RESULT = new ReturnStatement(e); :};
+
+expression ::= INTEGER_LITERAL:il {: RESULT = new IntegerLiteral(il); :}
+             | REAL_LITERAL:rl {: RESULT = new RealLiteral(rl); :}
+             | STRING_LITERAL:sl {: RESULT = new StringLiteral(sl); :}
+             | TRUE {: RESULT = new BooleanLiteral(true); :}
+             | FALSE {: RESULT = new BooleanLiteral(false); :}
+             | IDENTIFIER:id {: RESULT = new IdentifierExpression(id); :}
+             | expression:e1 PLUS expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.PLUS, e2); :}
+             | expression:e1 MINUS expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.MINUS, e2); :}
+             | expression:e1 TIMES expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.TIMES, e2); :}
+             | expression:e1 DIVIDE expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.DIVIDE, e2); :}
+             | expression:e1 MODULO expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.MODULO, e2); :}
+             | expression:e1 EQUAL expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.EQUAL, e2); :}
+             | expression:e1 NOT_EQUAL expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.NOT_EQUAL, e2); :}
+             | expression:e1 LESS expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.LESS, e2); :}
+             | expression:e1 LESS_EQUAL expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.LESS_EQUAL, e2); :}
+             | expression:e1 GREATER expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.GREATER, e2); :}
+             | expression:e1 GREATER_EQUAL expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.GREATER_EQUAL, e2); :}
+             | expression:e1 AND expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.AND, e2); :}
+             | expression:e1 OR expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.OR, e2); :}
+             | expression:e1 XOR expression:e2 {: RESULT = new BinaryExpression(e1, BinaryOp.XOR, e2); :}
+             | NOT expression:e {: RESULT = new UnaryExpression(UnaryOp.NOT, e); :}
+             | MINUS expression:e {: RESULT = new UnaryExpression(UnaryOp.MINUS, e); :}
+             | LPAREN expression:e RPAREN {: RESULT = e; :}
+             | IDENTIFIER:id LPAREN expression_list:args RPAREN {: RESULT = new RoutineCall(id, args); :}
+             | expression:e1 DOT IDENTIFIER:id {: RESULT = new RecordAccess(e1, id); :}
+             | expression:e1 LBRACKET expression:e2 RBRACKET {: RESULT = new ArrayAccess(e1, e2); :};
+
+expression_list ::= expression:e COMMA expression_list:el {: el.add(0, e); RESULT = el; :}
+                  | expression:e {: RESULT = new ArrayList<>(); RESULT.add(e); :}
+                  | /* empty */ {: RESULT = new ArrayList<>(); :};

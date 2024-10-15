@@ -1,8 +1,7 @@
-// case: for
 routine main() is
     var i: integer;
 
-    for i in 1..5 loop
+    for i in 1 .. 5 loop
         print(i);
     end;
 end;

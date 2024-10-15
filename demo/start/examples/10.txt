@@ -1,0 +1,30 @@
+// case: record
+type Person is record
+    var name: string;
+    var age: integer;
+end;
+
+// case: record based on another record
+type Student is record
+    Person person;
+    var grade: integer;
+end;
+
+var john: Person;
+var jane: Student;
+
+routine main() is
+    john.name := "John";
+    john.age := 30;
+
+    jane.person.name := "Jane";
+    jane.person.age := 20;
+    jane.grade := 90;
+
+    print(john.name);
+    print(john.age);
+
+    print(jane.person.name);
+    print(jane.person.age);
+    print(jane.grade);
+end;

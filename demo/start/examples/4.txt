@@ -1,9 +1,12 @@
+// case: if-else
 routine main() is
     var num: integer is -10;
 
     if num > 0 then
         print("Positive");
+    else if num < 0 then
+        print("Negative");
     else
-        print("Non positive");
+        print("Zero");
     end;
 end;
