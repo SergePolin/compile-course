@@ -17,6 +17,11 @@ public class ReturnStatement extends Statement {
 
     @Override
     public String toString() {
-        return "ReturnStatement(" + expression + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("ReturnStatement\n");
+        if (expression != null) {
+            sb.append("    └── ").append(expression.toString().replace("\n", "\n    "));
+        }
+        return sb.toString();
     }
 }

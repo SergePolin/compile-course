@@ -19,6 +19,9 @@ public class VariableReference extends Expression {
 
     @Override
     public String toString() {
-        return "VariableReference(" + name + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("VariableReference\n");
+        sb.append("└── name: ").append(name);
+        return sb.toString();
     }
 }

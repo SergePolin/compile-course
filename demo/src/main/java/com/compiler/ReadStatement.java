@@ -13,6 +13,7 @@ public class ReadStatement extends Statement {
 
     @Override
     public String toString() {
-        return "Read(" + identifier + ")";
+        return "Read\n" +
+                "└── " + identifier;
     }
 }

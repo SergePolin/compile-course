@@ -69,20 +69,23 @@ public class ForLoop extends Statement {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("ForLoop {\n");
-        sb.append("  variable: ").append(variable).append("\n");
-        sb.append("  reverse: ").append(reverse.isReverse()).append("\n");
-        sb.append("  start: ").append(start).append("\n");
-        sb.append("  end: ").append(end).append("\n");
-        sb.append("  body: [\n");
-        for (Statement stmt : body) {
+        sb.append("ForLoop\n");
+        sb.append("├── variable: ").append(variable).append("\n");
+        sb.append("├── reverse: ").append(reverse.isReverse()).append("\n");
+        sb.append("├── start: ").append(start).append("\n");
+        sb.append("├── end: ").append(end).append("\n");
+        sb.append("└── body:\n");
+        for (int i = 0; i < body.size(); i++) {
+            Statement stmt = body.get(i);
             String[] lines = stmt.toString().split("\n");
-            for (String line : lines) {
-                sb.append("    ").append(line).append("\n");
+            for (int j = 0; j < lines.length; j++) {
+                if (i == body.size() - 1) {
+                    sb.append(j == 0 ? "    └── " : "        ").append(lines[j]).append("\n");
+                } else {
+                    sb.append(j == 0 ? "    ├── " : "    │   ").append(lines[j]).append("\n");
+                }
             }
         }
-        sb.append("  ]\n");
-        sb.append("}");
         return sb.toString();
     }
 }

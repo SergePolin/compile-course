@@ -14,6 +14,7 @@ public class RealLiteral extends Expression {
 
     @Override
     public String toString() {
-        return "RealLiteral(" + value + ")";
+        return "RealLiteral\n" +
+                "└── " + value;
     }
 }

@@ -29,9 +29,13 @@ public class VarDecl extends Statement implements VariableDeclaration {
 
     @Override
     public String toString() {
-        return String.format("VarDecl(%s: %s%s)",
-                name,
-                type,
-                initializer != null ? " = " + initializer : "");
+        StringBuilder sb = new StringBuilder();
+        sb.append("VarDecl\n");
+        sb.append("├── name: ").append(name).append("\n");
+        sb.append("├── type: ").append(type).append("\n");
+        if (initializer != null) {
+            sb.append("└── initializer: ").append(initializer);
+        }
+        return sb.toString();
     }
 }

@@ -14,6 +14,9 @@ public class StringLiteral extends Expression {
 
     @Override
     public String toString() {
-        return "StringLiteral(\"" + value + "\")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("StringLiteral\n");
+        sb.append("└── value: \"").append(value).append("\"\n");
+        return sb.toString();
     }
 }

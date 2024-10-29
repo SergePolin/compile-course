@@ -13,6 +13,18 @@ public class RoutineCallStatement extends Statement {
 
     @Override
     public String toString() {
-        return "RoutineCallStatement(" + name + ", arguments=" + arguments + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("RoutineCallStatement\n");
+        sb.append("├── name: ").append(name).append("\n");
+        sb.append("└── arguments:\n");
+        for (int i = 0; i < arguments.size(); i++) {
+            Expression arg = arguments.get(i);
+            if (i == arguments.size() - 1) {
+                sb.append("    └── ").append(arg).append("\n");
+            } else {
+                sb.append("    ├── ").append(arg).append("\n");
+            }
+        }
+        return sb.toString();
     }
 }

@@ -11,11 +11,11 @@ public class RecordType extends Type {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("record {\n");
+        StringBuilder sb = new StringBuilder("RecordType\n");
+        sb.append("└── Fields\n");
         for (VariableDeclaration field : fields) {
-            sb.append("  ").append(field).append("\n");
+            sb.append("    └── ").append(field).append("\n");
         }
-        sb.append("}");
         return sb.toString();
     }
 }

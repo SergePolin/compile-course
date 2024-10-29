@@ -11,6 +11,8 @@ public class ArrayType extends Type {
 
     @Override
     public String toString() {
-        return "array[" + size + "] of " + elementType;
+        return "ArrayType\n"
+                + "├── size: " + size + "\n"
+                + "└── elementType: " + elementType;
     }
 }

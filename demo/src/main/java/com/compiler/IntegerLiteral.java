@@ -14,6 +14,7 @@ public class IntegerLiteral extends Expression {
 
     @Override
     public String toString() {
-        return "IntegerLiteral(" + value + ")";
+        return "IntegerLiteral\n" +
+                "└── " + value;
     }
 }

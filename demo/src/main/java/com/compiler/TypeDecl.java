@@ -19,6 +19,8 @@ public class TypeDecl extends Statement {
 
     @Override
     public String toString() {
-        return "TypeDecl(" + name + ", " + type + ")";
+        return "TypeDecl\n"
+                + "├── name: " + name + "\n"
+                + "└── type: " + type;
     }
 }

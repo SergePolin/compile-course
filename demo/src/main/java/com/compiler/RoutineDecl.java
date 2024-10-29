@@ -34,33 +34,36 @@ public class RoutineDecl extends Statement {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("RoutineDecl(")
-                .append("name=").append(name)
-                .append(", parameters=[");
+        sb.append("RoutineDecl\n");
+        sb.append("├── name: ").append(name).append("\n");
 
-        if (parameters != null) {
+        // Parameters
+        if (parameters != null && !parameters.isEmpty()) {
+            sb.append("├── parameters:\n");
             for (int i = 0; i < parameters.size(); i++) {
-                if (i > 0)
-                    sb.append(", ");
-                sb.append(parameters.get(i));
+                String prefix = (i == parameters.size() - 1) ? "│   └── " : "│   ├── ";
+                sb.append(prefix).append(parameters.get(i).toString().replace("\n", "\n│   │   ")).append("\n");
             }
         }
 
-        sb.append("]");
+        // Return type
         if (returnType != null) {
-            sb.append(", returnType=").append(returnType);
+            sb.append("├── returnType: ").append(returnType.toString().replace("\n", "\n│   ")).append("\n");
         }
-        sb.append(", body=[");
 
-        if (body != null) {
+        // Body
+        if (body != null && !body.isEmpty()) {
+            sb.append("└── body:\n");
             for (int i = 0; i < body.size(); i++) {
-                if (i > 0)
-                    sb.append(", ");
-                sb.append(body.get(i));
+                String prefix = (i == body.size() - 1) ? "    └── " : "    ├── ";
+                String[] lines = body.get(i).toString().split("\n");
+                sb.append(prefix).append(lines[0]).append("\n");
+                for (int j = 1; j < lines.length; j++) {
+                    sb.append("    │   ").append(lines[j]).append("\n");
+                }
             }
         }
 
-        sb.append("])");
         return sb.toString();
     }
 }

@@ -13,6 +13,9 @@ public class SimpleType extends Type {
 
     @Override
     public String toString() {
-        return name;
+        StringBuilder sb = new StringBuilder();
+        sb.append("SimpleType\n");
+        sb.append("└── name: ").append(name).append("\n");
+        return sb.toString();
     }
 }

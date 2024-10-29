@@ -18,6 +18,7 @@ public class PrintStatement extends Statement {
 
     @Override
     public String toString() {
-        return "Print(" + expression + ")";
+        return "Print\n" +
+                "└── " + expression.toString().replace("\n", "\n    ");
     }
 }

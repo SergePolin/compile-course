@@ -46,6 +46,10 @@ public class UnaryExpression extends Expression {
 
     @Override
     public String toString() {
-        return String.format("(%s %s)", operator, expression);
+        StringBuilder sb = new StringBuilder();
+        sb.append("UnaryExpression\n");
+        sb.append("├── operator: ").append(operator).append("\n");
+        sb.append("└── expression: ").append(expression.toString().replace("\n", "\n    "));
+        return sb.toString();
     }
 }

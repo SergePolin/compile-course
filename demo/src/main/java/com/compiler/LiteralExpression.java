@@ -9,7 +9,8 @@ public class LiteralExpression extends Expression {
 
     @Override
     public String toString() {
-        return "LiteralExpression(" + value.toString() + ")";
+        return "LiteralExpression\n" +
+                "└── " + value.toString();
     }
 
     public Object evaluate() {

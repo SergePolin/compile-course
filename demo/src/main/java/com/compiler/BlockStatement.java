@@ -12,13 +12,18 @@ public class BlockStatement extends Statement {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("BlockStatement(\n");
-        sb.append("  statements: [\n");
-        for (Statement stmt : statements) {
-            sb.append("    ").append(stmt.toString().replace("\n", "\n    ")).append(",\n");
+        sb.append("BlockStatement\n");
+        sb.append("└── statements\n");
+        for (int i = 0; i < statements.size(); i++) {
+            Statement stmt = statements.get(i);
+            String prefix = (i == statements.size() - 1) ? "    └── " : "    ├── ";
+            String[] lines = stmt.toString().split("\n");
+            sb.append(prefix).append(lines[0]).append("\n");
+            for (int j = 1; j < lines.length; j++) {
+                String continuationPrefix = (i == statements.size() - 1) ? "        " : "    │   ";
+                sb.append(continuationPrefix).append(lines[j]).append("\n");
+            }
         }
-        sb.append("  ]\n");
-        sb.append(")");
         return sb.toString();
     }
 }

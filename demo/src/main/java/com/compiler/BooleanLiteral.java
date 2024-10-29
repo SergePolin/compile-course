@@ -14,6 +14,7 @@ public class BooleanLiteral extends Expression {
 
     @Override
     public String toString() {
-        return "BooleanLiteral(" + value + ")";
+        return "BooleanLiteral\n" +
+                "└── " + value;
     }
 }

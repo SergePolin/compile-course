@@ -25,16 +25,24 @@ public class WhileStatement extends Statement {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("WhileStatement\n");
-        builder.append("├── Condition\n");
-        builder.append("│   └── ").append(condition).append("\n");
-        builder.append("└── Body\n");
-        for (int i = 0; i < body.size(); i++) {
-            Statement bodyStmt = body.get(i);
-            String prefix = (i == body.size() - 1) ? "    └── " : "    ├── ";
-            builder.append(prefix).append(bodyStmt.toString().replace("\n", "\n    │   ")).append("\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("WhileStatement\n");
+        sb.append("├── condition: ").append(condition.toString().replace("\n", "\n│   ")).append("\n");
+        sb.append("└── body: ");
+        if (body.isEmpty()) {
+            sb.append("empty");
+        } else {
+            sb.append("\n");
+            for (int i = 0; i < body.size(); i++) {
+                Statement stmt = body.get(i);
+                if (i == body.size() - 1) {
+                    sb.append("    └── ").append(stmt.toString().replace("\n", "\n    "));
+                } else {
+                    sb.append("    ├── ").append(stmt.toString().replace("\n", "\n    │   "));
+                    sb.append("\n");
+                }
+            }
         }
-        return builder.toString();
+        return sb.toString();
     }
 }

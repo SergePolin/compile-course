@@ -159,6 +159,11 @@ public class BinaryExpression extends Expression {
 
     @Override
     public String toString() {
-        return String.format("(%s %s %s)", left, operator, right);
+        StringBuilder sb = new StringBuilder();
+        sb.append("BinaryExpression\n");
+        sb.append("├── Operator: ").append(operator).append("\n");
+        sb.append("├── Left: ").append(left).append("\n");
+        sb.append("└── Right: ").append(right);
+        return sb.toString();
     }
 }

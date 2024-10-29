@@ -32,13 +32,24 @@ public class IfStatement extends Statement {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("IfStatement(")
-                .append("condition=").append(condition)
-                .append(", thenBody=").append(thenBody);
-        if (elseBody != null && !elseBody.isEmpty()) {
-            sb.append(", elseBody=").append(elseBody);
+        sb.append("IF\n");
+        sb.append("├── Condition: ").append(condition).append("\n");
+        sb.append("├── Then:\n");
+        for (Statement stmt : thenBody) {
+            String[] lines = stmt.toString().split("\n");
+            for (String line : lines) {
+                sb.append("│   ").append(line).append("\n");
+            }
         }
-        sb.append(")");
-        return sb.toString();
+        if (elseBody != null && !elseBody.isEmpty()) {
+            sb.append("└── Else:\n");
+            for (Statement stmt : elseBody) {
+                String[] lines = stmt.toString().split("\n");
+                for (String line : lines) {
+                    sb.append("    ").append(line).append("\n");
+                }
+            }
+        }
+        return sb.toString().trim();
     }
 }

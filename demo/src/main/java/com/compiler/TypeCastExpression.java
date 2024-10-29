@@ -19,10 +19,8 @@ public class TypeCastExpression extends Expression {
 
     @Override
     public String toString() {
-        return "TypeCastExpression(" +
-                "expression=" + expression +
-                ", targetType='" + targetType + "'" +
-                ")";
+        return "(" + targetType + ")\n" +
+                "  " + expression.toString().replace("\n", "\n  ");
     }
 
     // Example evaluate method (you may adjust based on your needs)

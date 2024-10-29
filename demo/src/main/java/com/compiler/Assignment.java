@@ -31,9 +31,15 @@ public class Assignment extends Statement {
 
     @Override
     public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Assignment\n");
         if (index != null) {
-            return "Assignment(" + target + "[" + index + "] := " + value + ")";
+            sb.append("├── Target: ").append(target).append("[]\n");
+            sb.append("├── Index: ").append(index).append("\n");
+        } else {
+            sb.append("├── Target: ").append(target).append("\n");
         }
-        return "Assignment(" + target + " := " + value + ")";
+        sb.append("└── Value: ").append(value);
+        return sb.toString();
     }
 }

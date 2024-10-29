@@ -17,6 +17,8 @@ public class RecordAccess extends Expression {
 
     @Override
     public String toString() {
-        return "RecordAccess(" + record + "." + field + ")";
+        return "RecordAccess\n" +
+                "├── " + record + "\n" +
+                "└── " + field;
     }
 }

@@ -11,6 +11,8 @@ public class ArrayDecl extends Statement implements VariableDeclaration {
 
     @Override
     public String toString() {
-        return "ArrayDecl(" + name + ", " + type + ")";
+        return "ArrayDecl\n"
+                + "├── name: " + name + "\n"
+                + "└── type: " + type;
     }
 }

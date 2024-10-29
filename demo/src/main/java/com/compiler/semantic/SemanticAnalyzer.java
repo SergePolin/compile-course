@@ -3,14 +3,36 @@ package com.compiler.semantic;
 import com.compiler.*;
 import java.util.*;
 
+/**
+ * The SemanticAnalyzer performs semantic analysis on the AST (Abstract Syntax
+ * Tree) to check for:
+ * - Type checking
+ * - Variable declarations and scoping
+ * - Function/routine declarations and calls
+ * - Control flow analysis
+ * - Constant expression optimization
+ * - Unused variable detection
+ */
 public class SemanticAnalyzer {
+    // Symbol table to track variables and their types across scopes
     private SymbolTable symbolTable;
-    private List<SemanticError> errors;
-    private Stack<Type> expectedReturnTypes;
-    private Set<String> usedVariables;
-    private boolean insideLoop;
-    private boolean insideRoutine;
 
+    // List to collect semantic errors found during analysis
+    private List<SemanticError> errors;
+
+    // Stack to track expected return types when analyzing routines
+    private Stack<Type> expectedReturnTypes;
+
+    // Set to track which variables are actually used
+    private Set<String> usedVariables;
+
+    // Flags to track context during analysis
+    private boolean insideLoop; // Whether we're analyzing code inside a loop
+    private boolean insideRoutine; // Whether we're analyzing code inside a routine
+
+    /**
+     * Creates a new semantic analyzer with empty state
+     */
     public SemanticAnalyzer() {
         this.symbolTable = new SymbolTable();
         this.errors = new ArrayList<>();
@@ -20,6 +42,10 @@ public class SemanticAnalyzer {
         this.insideRoutine = false;
     }
 
+    /**
+     * Main entry point to analyze a program AST.
+     * Performs semantic analysis and returns list of any errors found.
+     */
     public List<SemanticError> analyze(Program program) {
         errors.clear();
         symbolTable.clear();
@@ -30,6 +56,9 @@ public class SemanticAnalyzer {
         return errors;
     }
 
+    /**
+     * Visits each statement in the program to perform semantic analysis
+     */
     private void visit(Program program) {
         // First pass: collect all global declarations
         for (Statement stmt : program.getStatements()) {
@@ -37,6 +66,11 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Dispatches to appropriate visit method based on statement type.
+     * Each visit method performs semantic analysis specific to that type of
+     * statement.
+     */
     private void visitStatement(Statement stmt) {
         if (stmt instanceof VarDecl) {
             visitVarDecl((VarDecl) stmt);
@@ -71,6 +105,12 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks variable declarations for:
+     * - Duplicate declarations in same scope
+     * - Valid variable type
+     * - Type compatibility of initializer if present
+     */
     private void visitVarDecl(VarDecl decl) {
         // Check if variable is already declared in current scope
         if (symbolTable.isDefinedInCurrentScope(decl.getName())) {
@@ -102,6 +142,11 @@ public class SemanticAnalyzer {
         symbolTable.declareVariable(decl.getName(), declaredType);
     }
 
+    /**
+     * Checks assignments for:
+     * - Variable existence
+     * - Type compatibility between variable and value
+     */
     private void visitAssignment(Assignment assign) {
         // Check if variable exists
         if (!symbolTable.isDefined(assign.getTarget())) {
@@ -126,6 +171,11 @@ public class SemanticAnalyzer {
         usedVariables.add(assign.getTarget());
     }
 
+    /**
+     * Checks if statements for:
+     * - Boolean condition
+     * - Valid statements in then/else blocks
+     */
     private void visitIfStatement(IfStatement ifStmt) {
         // Check if the condition is a boolean expression
         Type conditionType = getExpressionType(ifStmt.getCondition());
@@ -146,6 +196,11 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks while loops for:
+     * - Boolean condition
+     * - Valid statements in loop body
+     */
     private void visitWhileStatement(WhileStatement whileStmt) {
         // Check if the condition is a boolean expression
         Type conditionType = getExpressionType(whileStmt.getCondition());
@@ -159,6 +214,11 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks for loops for:
+     * - Valid loop variable
+     * - Valid statements in loop body
+     */
     private void visitForLoop(ForLoop forLoop) {
         // Check if the loop variable is declared
         if (!symbolTable.isDefined(forLoop.getVariable())) {
@@ -171,6 +231,11 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks return statements for:
+     * - Being inside a routine
+     * - Type compatibility with routine return type
+     */
     private void visitReturnStatement(ReturnStatement returnStmt) {
         if (expectedReturnTypes.isEmpty()) {
             errors.add(new SemanticError("Return statement not allowed in this context"));
@@ -196,6 +261,10 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks print statements for:
+     * - Valid expression to print
+     */
     private void visitPrintStatement(PrintStatement printStmt) {
         Expression expr = printStmt.getExpression();
 
@@ -215,6 +284,10 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Checks read statements for:
+     * - Valid variable to read into
+     */
     private void visitReadStatement(ReadStatement readStmt) {
         // Check if the variable exists
         if (!symbolTable.isDefined(readStmt.getVariable())) {
@@ -225,6 +298,13 @@ public class SemanticAnalyzer {
         usedVariables.add(readStmt.getVariable());
     }
 
+    /**
+     * Checks routine declarations for:
+     * - Valid parameter types
+     * - Valid return type
+     * - Return statement presence when needed
+     * - Valid routine body
+     */
     private void visitRoutineDecl(RoutineDecl routine) {
         // Create a new scope for the routine
         symbolTable.enterScope();
@@ -257,9 +337,10 @@ public class SemanticAnalyzer {
             visitStatement(stmt);
         }
 
-        // Check if routine with return type has a return statement
-        if (routine.getReturnType() != null &&
-                !routine.getReturnType().toString().equals("void") &&
+        // Check if non-void routine has a return statement
+        Type returnType = routine.getReturnType();
+        if (returnType != null &&
+                !(returnType instanceof SimpleType && ((SimpleType) returnType).getName().equals("void")) &&
                 !hasReturnStatement(routine.getBody())) {
             errors.add(new SemanticError("Routine '" + routine.getName() + "' must return a value"));
         }
@@ -273,6 +354,9 @@ public class SemanticAnalyzer {
         symbolTable.exitScope();
     }
 
+    /**
+     * Checks if a list of statements contains a return statement
+     */
     private boolean hasReturnStatement(List<Statement> statements) {
         for (Statement stmt : statements) {
             if (stmt instanceof ReturnStatement) {
@@ -289,6 +373,9 @@ public class SemanticAnalyzer {
         return false;
     }
 
+    /**
+     * Determines the type of an expression through recursive analysis
+     */
     private Type getExpressionType(Expression expr) {
         if (expr == null) {
             return null;
@@ -368,6 +455,9 @@ public class SemanticAnalyzer {
         return null;
     }
 
+    /**
+     * Checks if a type is numeric (integer or real)
+     */
     private boolean isNumeric(Type type) {
         if (type instanceof SimpleType) {
             String typeName = ((SimpleType) type).getName();
@@ -376,6 +466,12 @@ public class SemanticAnalyzer {
         return false;
     }
 
+    /**
+     * Checks routine calls for:
+     * - Routine existence
+     * - Correct number of arguments
+     * - Type compatibility of arguments
+     */
     private Type getRoutineCallType(RoutineCall call) {
         RoutineDecl routine = symbolTable.getRoutine(call.getName());
         if (routine == null) {
@@ -410,11 +506,17 @@ public class SemanticAnalyzer {
         return routine.getReturnType();
     }
 
+    /**
+     * Checks if a type is valid according to the symbol table
+     */
     private boolean isValidType(Type type) {
         // Check if the type is valid (exists in the symbol table)
         return symbolTable.isTypeDefined(type);
     }
 
+    /**
+     * Checks if two types are compatible for assignment/comparison
+     */
     private boolean isTypeCompatible(Type expected, Type actual) {
         if (expected == null || actual == null) {
             return false;
@@ -444,6 +546,9 @@ public class SemanticAnalyzer {
         return false;
     }
 
+    /**
+     * Checks if a type is boolean
+     */
     private boolean isBoolean(Type type) {
         if (type instanceof SimpleType) {
             return ((SimpleType) type).getName().equals("boolean");
@@ -451,6 +556,9 @@ public class SemanticAnalyzer {
         return false;
     }
 
+    /**
+     * Removes unused variable declarations from the program
+     */
     private void removeUnusedVariables(Program program) {
         Iterator<Statement> iterator = program.getStatements().iterator();
         while (iterator.hasNext()) {
@@ -464,12 +572,18 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Optimizes constant expressions in the program
+     */
     private void optimizeConstantExpressions(Program program) {
         for (Statement stmt : program.getStatements()) {
             optimizeStatement(stmt);
         }
     }
 
+    /**
+     * Optimizes constant expressions within a statement
+     */
     private void optimizeStatement(Statement stmt) {
         if (stmt instanceof VarDecl) {
             VarDecl varDecl = (VarDecl) stmt;
@@ -511,6 +625,9 @@ public class SemanticAnalyzer {
         }
     }
 
+    /**
+     * Attempts to optimize constant expressions
+     */
     private Expression optimizeExpression(Expression expr) {
         if (expr == null)
             return null;
@@ -559,6 +676,9 @@ public class SemanticAnalyzer {
         return null;
     }
 
+    /**
+     * Checks if an expression consists only of constant values
+     */
     private boolean isConstantExpression(Expression expr) {
         if (expr instanceof IntegerLiteral ||
                 expr instanceof RealLiteral ||
@@ -581,6 +701,9 @@ public class SemanticAnalyzer {
         return false;
     }
 
+    /**
+     * Evaluates a constant expression to its value
+     */
     private Object evaluateConstant(Expression expr) {
         if (expr instanceof IntegerLiteral) {
             return ((IntegerLiteral) expr).evaluate();
@@ -603,6 +726,9 @@ public class SemanticAnalyzer {
         throw new RuntimeException("Cannot evaluate non-constant expression");
     }
 
+    /**
+     * Evaluates a binary operation on constant values
+     */
     private Object evaluateBinaryOperation(Object left, Object right, String operator) {
         if (left instanceof Integer && right instanceof Integer) {
             int l = (Integer) left;
@@ -646,6 +772,9 @@ public class SemanticAnalyzer {
         throw new RuntimeException("Invalid operands for operator " + operator);
     }
 
+    /**
+     * Evaluates a unary operation on a constant value
+     */
     private Object evaluateUnaryOperation(Object operand, String operator) {
         if (operand instanceof Integer && operator.equals("-")) {
             return -(Integer) operand;

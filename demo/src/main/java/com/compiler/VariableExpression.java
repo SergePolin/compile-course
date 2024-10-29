@@ -9,7 +9,10 @@ public class VariableExpression extends Expression {
 
     @Override
     public String toString() {
-        return "VariableExpression(" + varName + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("VariableExpression\n");
+        sb.append("└── name: ").append(varName);
+        return sb.toString();
     }
 
     public Object evaluate() {

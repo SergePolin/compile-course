@@ -17,6 +17,10 @@ public class ArrayAccess extends Expression {
 
     @Override
     public String toString() {
-        return "ArrayAccess(" + array + "[" + index + "])";
+        StringBuilder sb = new StringBuilder();
+        sb.append("ArrayAccess\n");
+        sb.append("├── Array: ").append(array).append("\n");
+        sb.append("└── Index: ").append(index);
+        return sb.toString();
     }
 }

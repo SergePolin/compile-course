@@ -19,6 +19,19 @@ public class RoutineCallExpression extends Expression {
 
     @Override
     public String toString() {
-        return "RoutineCallExpression(" + name + ", arguments=" + arguments + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("RoutineCall\n");
+        sb.append("├── Name: ").append(name).append("\n");
+        sb.append("└── Arguments:\n");
+        for (int i = 0; i < arguments.size(); i++) {
+            Expression arg = arguments.get(i);
+            if (i == arguments.size() - 1) {
+                sb.append("    └── ").append(arg.toString().replace("\n", "\n    "));
+            } else {
+                sb.append("    ├── ").append(arg.toString().replace("\n", "\n    "));
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }

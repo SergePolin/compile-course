@@ -18,6 +18,10 @@ public class TypeCast extends Expression {
 
     @Override
     public String toString() {
-        return "TypeCast(" + expr + ", " + targetType + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("TypeCast\n");
+        sb.append("├── expr: ").append(expr).append("\n");
+        sb.append("└── targetType: ").append(targetType).append("\n");
+        return sb.toString();
     }
 }

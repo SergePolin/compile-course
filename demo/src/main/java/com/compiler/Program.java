@@ -16,14 +16,22 @@ public class Program {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Program {\n");
-        for (Statement stmt : statements) {
+        sb.append("Program\n");
+        for (int i = 0; i < statements.size(); i++) {
+            Statement stmt = statements.get(i);
             String[] lines = stmt.toString().split("\n");
-            for (String line : lines) {
-                sb.append("  ").append(line).append("\n");
+            if (i == statements.size() - 1) {
+                sb.append("└── ").append(lines[0]).append("\n");
+                for (int j = 1; j < lines.length; j++) {
+                    sb.append("    ").append(lines[j]).append("\n");
+                }
+            } else {
+                sb.append("├── ").append(lines[0]).append("\n");
+                for (int j = 1; j < lines.length; j++) {
+                    sb.append("│   ").append(lines[j]).append("\n");
+                }
             }
         }
-        sb.append("}");
         return sb.toString();
     }
 }
