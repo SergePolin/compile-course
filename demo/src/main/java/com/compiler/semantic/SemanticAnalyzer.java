@@ -4,8 +4,7 @@ import com.compiler.*;
 import java.util.*;
 
 /**
- * The SemanticAnalyzer performs semantic analysis on the AST (Abstract Syntax
- * Tree) to check for:
+ * The SemanticAnalyzer performs semantic analysis on the AST to check for:
  * - Type checking
  * - Variable declarations and scoping
  * - Function/routine declarations and calls
@@ -60,9 +59,21 @@ public class SemanticAnalyzer {
      * Visits each statement in the program to perform semantic analysis
      */
     private void visit(Program program) {
-        // First pass: collect all global declarations
+        // First pass: collect all routine declarations
         for (Statement stmt : program.getStatements()) {
-            visitStatement(stmt);
+            if (stmt instanceof RoutineDecl) {
+                RoutineDecl routine = (RoutineDecl) stmt;
+                symbolTable.declareRoutine(routine.getName(), routine);
+            }
+        }
+
+        // Second pass: analyze routine bodies and other statements
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl) {
+                visitRoutineDecl((RoutineDecl) stmt);
+            } else {
+                visitStatement(stmt);
+            }
         }
     }
 
@@ -309,6 +320,10 @@ public class SemanticAnalyzer {
         // Create a new scope for the routine
         symbolTable.enterScope();
 
+        // Set insideRoutine flag
+        boolean wasInsideRoutine = insideRoutine;
+        insideRoutine = true; // Set flag before analyzing routine body
+
         // Add parameters to the new scope
         if (routine.getParameters() != null) {
             for (Parameter param : routine.getParameters()) {
@@ -349,6 +364,9 @@ public class SemanticAnalyzer {
         if (routine.getReturnType() != null) {
             expectedReturnTypes.pop();
         }
+
+        // Restore previous insideRoutine state
+        insideRoutine = wasInsideRoutine;
 
         // Exit the routine's scope
         symbolTable.exitScope();
