@@ -9,44 +9,39 @@ public class UnaryExpression extends Expression {
         this.expression = expression;
     }
 
+    public Expression getExpression() {
+        return expression;
+    }
+
     @Override
     public Object evaluate() {
         Object value = expression.evaluate();
-        if (operator.equals("-")) {
-            if (value instanceof Integer) {
-                return -(Integer) value;
-            } else if (value instanceof Double) {
-                return -(Double) value;
-            }
+        switch (operator) {
+            case "-":
+                return negate(value);
+            case "not":
+                return not(value);
+            default:
+                throw new RuntimeException("Unknown unary operator: " + operator);
         }
-        if (operator.equals("not")) {
-            if (value instanceof Boolean) {
-                return !(Boolean) value;
-            }
+    }
+
+    private Object negate(Object value) {
+        if (value instanceof Integer) {
+            return -(Integer) value;
         }
-        throw new RuntimeException("Unsupported unary operation: " + operator);
+        throw new RuntimeException("Invalid operand type for unary -");
+    }
+
+    private Object not(Object value) {
+        if (value instanceof Boolean) {
+            return !(Boolean) value;
+        }
+        throw new RuntimeException("Invalid operand type for not");
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("UnaryExpression\n");
-        sb.append("├── operator: ").append(operator).append("\n");
-        sb.append("└── expression: ");
-        String[] expressionLines = expression.toString().split("\n");
-        if (expressionLines.length > 1) {
-            sb.append("\n");
-            for (int i = 0; i < expressionLines.length; i++) {
-                if (i == expressionLines.length - 1) {
-                    sb.append("    └── ");
-                } else {
-                    sb.append("    ├── ");
-                }
-                sb.append(expressionLines[i]).append("\n");
-            }
-        } else {
-            sb.append(expression.toString()).append("\n");
-        }
-        return sb.toString();
+        return String.format("(%s %s)", operator, expression);
     }
 }

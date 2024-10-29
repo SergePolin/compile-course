@@ -5,20 +5,13 @@ import java.util.List;
 public class RoutineDecl extends Statement {
     private String name;
     private List<Parameter> parameters;
-    private String returnType;
+    private Type returnType;
     private List<Statement> body;
 
-    public RoutineDecl(String name, List<Parameter> parameters, String returnType, List<Statement> body) {
+    public RoutineDecl(String name, List<Parameter> parameters, Type returnType, List<Statement> body) {
         this.name = name;
         this.parameters = parameters;
         this.returnType = returnType;
-        this.body = body;
-    }
-
-    public RoutineDecl(String name, List<Statement> body) {
-        this.name = name;
-        this.parameters = null;
-        this.returnType = null;
         this.body = body;
     }
 
@@ -26,12 +19,12 @@ public class RoutineDecl extends Statement {
         return name;
     }
 
-    public List<Parameter> getParameters() {
-        return parameters;
+    public Type getReturnType() {
+        return returnType;
     }
 
-    public String getReturnType() {
-        return returnType;
+    public List<Parameter> getParameters() {
+        return parameters;
     }
 
     public List<Statement> getBody() {
@@ -40,7 +33,34 @@ public class RoutineDecl extends Statement {
 
     @Override
     public String toString() {
-        return "RoutineDecl(" + name + ", parameters=" + parameters + ", returnType=" + returnType + ", body=" + body
-                + ")";
+        StringBuilder sb = new StringBuilder();
+        sb.append("RoutineDecl(")
+                .append("name=").append(name)
+                .append(", parameters=[");
+
+        if (parameters != null) {
+            for (int i = 0; i < parameters.size(); i++) {
+                if (i > 0)
+                    sb.append(", ");
+                sb.append(parameters.get(i));
+            }
+        }
+
+        sb.append("]");
+        if (returnType != null) {
+            sb.append(", returnType=").append(returnType);
+        }
+        sb.append(", body=[");
+
+        if (body != null) {
+            for (int i = 0; i < body.size(); i++) {
+                if (i > 0)
+                    sb.append(", ");
+                sb.append(body.get(i));
+            }
+        }
+
+        sb.append("])");
+        return sb.toString();
     }
 }

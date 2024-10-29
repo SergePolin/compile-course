@@ -1,26 +1,24 @@
 package com.compiler;
 
 public class TypeDecl extends Statement {
-    private String id;
-    private String type;
+    private String name;
+    private Type type;
 
-    public TypeDecl(String id, String type) {
-        this.id = id;
+    public TypeDecl(String name, Type type) {
+        this.name = name;
         this.type = type;
     }
 
-    public String getId() {
-        return id;
+    public String getName() {
+        return name;
     }
 
-    public String getType() {
+    public Type getType() {
         return type;
     }
 
     @Override
     public String toString() {
-        return "TypeDecl\n"
-                + "├── id: " + id + "\n"
-                + "└── type: " + type;
+        return "TypeDecl(" + name + ", " + type + ")";
     }
 }

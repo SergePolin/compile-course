@@ -11,57 +11,146 @@ public class BinaryExpression extends Expression {
         this.right = right;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("BinaryExpression(\n");
-        sb.append("  left: ").append(left.toString().replace("\n", "\n  ")).append(",\n");
-        sb.append("  operator: \"").append(operator).append("\",\n");
-        sb.append("  right: ").append(right.toString().replace("\n", "\n  ")).append("\n");
-        sb.append(")");
-        return sb.toString();
+    public Expression getLeft() {
+        return left;
     }
 
     @Override
     public Object evaluate() {
-        Object leftValue = left.evaluate();
-        Object rightValue = right.evaluate();
+        Object leftVal = left.evaluate();
+        Object rightVal = right.evaluate();
 
         switch (operator) {
             case "+":
-                if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                    return (Integer) leftValue + (Integer) rightValue;
-                } else if (leftValue instanceof Double && rightValue instanceof Double) {
-                    return (Double) leftValue + (Double) rightValue;
-                }
-                break;
+                return add(leftVal, rightVal);
             case "-":
-                if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                    return (Integer) leftValue - (Integer) rightValue;
-                } else if (leftValue instanceof Double && rightValue instanceof Double) {
-                    return (Double) leftValue - (Double) rightValue;
-                }
-                break;
+                return subtract(leftVal, rightVal);
             case "*":
-                if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                    return (Integer) leftValue * (Integer) rightValue;
-                } else if (leftValue instanceof Double && rightValue instanceof Double) {
-                    return (Double) leftValue * (Double) rightValue;
-                }
-                break;
+                return multiply(leftVal, rightVal);
             case "/":
-                if (leftValue instanceof Integer && rightValue instanceof Integer) {
-                    return (Integer) leftValue / (Integer) rightValue;
-                } else if (leftValue instanceof Double && rightValue instanceof Double) {
-                    return (Double) leftValue / (Double) rightValue;
-                }
-                break;
-            case ">":
-                return (Integer) leftValue > (Integer) rightValue;
+                return divide(leftVal, rightVal);
+            case "%":
+                return mod(leftVal, rightVal);
+            case "and":
+                return and(leftVal, rightVal);
+            case "or":
+                return or(leftVal, rightVal);
+            case "xor":
+                return xor(leftVal, rightVal);
+            case "=":
+                return equals(leftVal, rightVal);
+            case "!=":
+                return notEquals(leftVal, rightVal);
             case "<":
-                return (Integer) leftValue < (Integer) rightValue;
+                return lessThan(leftVal, rightVal);
+            case "<=":
+                return lessOrEqual(leftVal, rightVal);
+            case ">":
+                return greaterThan(leftVal, rightVal);
+            case ">=":
+                return greaterOrEqual(leftVal, rightVal);
+            default:
+                throw new RuntimeException("Unknown operator: " + operator);
         }
+    }
 
-        throw new RuntimeException("Unsupported binary operation: " + operator);
+    // Helper methods for operations
+    private Object add(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left + (Integer) right;
+        }
+        // Add other type combinations as needed
+        throw new RuntimeException("Invalid operand types for +");
+    }
+
+    // Implement other operation methods similarly
+    private Object subtract(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left - (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for -");
+    }
+
+    private Object multiply(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left * (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for *");
+    }
+
+    private Object divide(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left / (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for /");
+    }
+
+    private Object mod(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left % (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for %");
+    }
+
+    private Object and(Object left, Object right) {
+        if (left instanceof Boolean && right instanceof Boolean) {
+            return (Boolean) left && (Boolean) right;
+        }
+        throw new RuntimeException("Invalid operand types for and");
+    }
+
+    private Object or(Object left, Object right) {
+        if (left instanceof Boolean && right instanceof Boolean) {
+            return (Boolean) left || (Boolean) right;
+        }
+        throw new RuntimeException("Invalid operand types for or");
+    }
+
+    private Object xor(Object left, Object right) {
+        if (left instanceof Boolean && right instanceof Boolean) {
+            return (Boolean) left ^ (Boolean) right;
+        }
+        throw new RuntimeException("Invalid operand types for xor");
+    }
+
+    private Object notEquals(Object left, Object right) {
+        return !left.equals(right);
+    }
+
+    private Object lessThan(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left < (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for <");
+    }
+
+    private Object lessOrEqual(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left <= (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for <=");
+    }
+
+    private Object greaterThan(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left > (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for >");
+    }
+
+    private Object greaterOrEqual(Object left, Object right) {
+        if (left instanceof Integer && right instanceof Integer) {
+            return (Integer) left >= (Integer) right;
+        }
+        throw new RuntimeException("Invalid operand types for >=");
+    }
+
+    private Object equals(Object left, Object right) {
+        return left.equals(right);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("(%s %s %s)", left, operator, right);
     }
 }

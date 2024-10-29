@@ -1,33 +1,33 @@
 package com.compiler;
 
-public class VarDecl extends Statement {
-    private String varName;
-    private String type;
-    private Expression value;
-    private Integer size;
+public class VarDecl extends Statement implements VariableDeclaration {
+    private String name;
+    private Type type;
+    private Expression initializer;
 
-    public VarDecl(String varName, String type, Expression value) {
-        this.varName = varName;
+    public VarDecl(String name, Type type, Expression initializer) {
+        this.name = name;
         this.type = type;
-        this.value = value;
-        this.size = null;
+        this.initializer = initializer;
+    }
 
-        if (type != null && type.startsWith("array[")) {
-            int endIndex = type.indexOf(']');
-            if (endIndex != -1) {
-                String sizeStr = type.substring(6, endIndex);
-                this.size = Integer.parseInt(sizeStr);
-                this.type = type.substring(endIndex + 2); // Get the base type after "] "
-            }
-        }
+    public String getName() {
+        return name;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public Expression getInitializer() {
+        return initializer;
     }
 
     @Override
     public String toString() {
-        return "VarDecl(\n" +
-                "  varName: " + varName + ",\n" +
-                "  type: " + type + ",\n" +
-                "  value: " + value + "\n" +
-                ")";
+        return String.format("VarDecl(%s: %s%s)",
+                name,
+                type,
+                initializer != null ? " = " + initializer : "");
     }
 }

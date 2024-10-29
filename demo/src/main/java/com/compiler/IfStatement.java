@@ -4,33 +4,37 @@ import java.util.List;
 
 public class IfStatement extends Statement {
     private Expression condition;
-    private List<Statement> thenStatements;
-    private List<Statement> elseStatements; // This now includes ELSE IF clauses and the final ELSE
+    private List<Statement> thenBody;
+    private List<Statement> elseBody;
 
-    public IfStatement(Expression condition, List<Statement> thenStatements, List<Statement> elseStatements) {
+    public IfStatement(Expression condition, List<Statement> thenBody, List<Statement> elseBody) {
         this.condition = condition;
-        this.thenStatements = thenStatements;
-        this.elseStatements = elseStatements;
+        this.thenBody = thenBody;
+        this.elseBody = elseBody;
+    }
+
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public List<Statement> getThenStatements() {
+        return thenBody;
+    }
+
+    public List<Statement> getElseStatements() {
+        return elseBody;
     }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("IfStatement {\n");
-        builder.append("    condition: ").append(condition).append("\n");
-        builder.append("    thenStatements: [\n");
-        for (Statement stmt : thenStatements) {
-            builder.append("        ").append(stmt.toString().replace("\n", "\n        ")).append("\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("IfStatement(")
+                .append("condition=").append(condition)
+                .append(", thenBody=").append(thenBody);
+        if (elseBody != null && !elseBody.isEmpty()) {
+            sb.append(", elseBody=").append(elseBody);
         }
-        builder.append("    ]\n");
-        if (elseStatements != null && !elseStatements.isEmpty()) {
-            builder.append("    elseStatements: [\n");
-            for (Statement stmt : elseStatements) {
-                builder.append("        ").append(stmt.toString().replace("\n", "\n        ")).append("\n");
-            }
-            builder.append("    ]\n");
-        }
-        builder.append("}");
-        return builder.toString();
+        sb.append(")");
+        return sb.toString();
     }
 }

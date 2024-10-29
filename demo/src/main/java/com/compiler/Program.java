@@ -15,15 +15,15 @@ public class Program {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Program\n");
-        for (int i = 0; i < statements.size(); i++) {
-            String prefix = (i == statements.size() - 1) ? "└── " : "├── ";
-            builder.append(prefix).append(statements.get(i).toString().replace("\n", "\n    "));
-            if (i < statements.size() - 1) {
-                builder.append("\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("Program {\n");
+        for (Statement stmt : statements) {
+            String[] lines = stmt.toString().split("\n");
+            for (String line : lines) {
+                sb.append("  ").append(line).append("\n");
             }
         }
-        return builder.toString();
+        sb.append("}");
+        return sb.toString();
     }
 }

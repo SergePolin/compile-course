@@ -11,14 +11,13 @@ public class PrintStatement extends Statement {
         return expression;
     }
 
-    @Override
-    public String toString() {
-        return "PrintStatement\n" +
-                "└── " + expression.toString().replace("\n", "\n    ");
+    public void execute() {
+        Object value = expression.evaluate();
+        System.out.println(value);
     }
 
-    public void execute() {
-        // Assuming Expression has an `evaluate()` method
-        System.out.println(expression.evaluate());
+    @Override
+    public String toString() {
+        return "Print(" + expression + ")";
     }
 }

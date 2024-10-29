@@ -11,6 +11,14 @@ public class WhileStatement extends Statement {
         this.body = body;
     }
 
+    public Expression getCondition() {
+        return condition;
+    }
+
+    public List<Statement> getBody() {
+        return body;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

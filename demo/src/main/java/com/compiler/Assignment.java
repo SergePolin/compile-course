@@ -1,21 +1,35 @@
 package com.compiler;
 
 public class Assignment extends Statement {
-    private String variable;
-    private Expression expression;
+    private String target;
+    private Expression value;
+    private Expression index; // for array assignments
 
-    public Assignment(String variable, Expression expression) {
-        this.variable = variable;
-        this.expression = expression;
+    public Assignment(String target, Expression value) {
+        this.target = target;
+        this.value = value;
+        this.index = null;
+    }
+
+    public Assignment(String target, Expression index, Expression value) {
+        this.target = target;
+        this.index = index;
+        this.value = value;
+    }
+
+    public String getTarget() {
+        return target;
+    }
+
+    public Expression getValue() {
+        return value;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Assignment(\n");
-        sb.append("  variable: ").append(variable).append(",\n");
-        sb.append("  expression: ").append(expression.toString().replace("\n", "\n  ")).append("\n");
-        sb.append(")");
-        return sb.toString();
+        if (index != null) {
+            return "Assignment(" + target + "[" + index + "] := " + value + ")";
+        }
+        return "Assignment(" + target + " := " + value + ")";
     }
 }

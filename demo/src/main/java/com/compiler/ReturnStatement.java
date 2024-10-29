@@ -11,8 +11,12 @@ public class ReturnStatement extends Statement {
         return expression;
     }
 
+    public boolean hasExpression() {
+        return expression != null;
+    }
+
     @Override
     public String toString() {
-        return "Return(" + expression + ")";
+        return "ReturnStatement(" + expression + ")";
     }
 }

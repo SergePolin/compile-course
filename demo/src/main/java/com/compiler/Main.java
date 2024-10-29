@@ -1,40 +1,48 @@
 package com.compiler;
 
-import java.io.FileReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java_cup.runtime.Symbol;
+import com.compiler.semantic.SemanticAnalyzer;
+import com.compiler.semantic.SemanticError;
 import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
+import java.io.FileReader;
+import java.util.List;
 
 public class Main {
-
     public static void main(String[] args) {
+        // Specify the input file path
+        String inputFilePath = "src/main/resources/test.imp"; // Update this path
+
         try {
-            // Load the test file (you can modify the path as needed)
-            FileReader fileReader = new FileReader("src/main/resources/test.imp");
-
-            // Create a ComplexSymbolFactory
+            // Set up the lexer and parser
             ComplexSymbolFactory symbolFactory = new ComplexSymbolFactory();
-
-            // Initialize the lexer with the file reader and symbol factory
-            Lexer lexer = new Lexer(fileReader, symbolFactory);
-
-            // Initialize the parser with the lexer and symbol factory
+            Lexer lexer = new Lexer(new FileReader(inputFilePath), symbolFactory);
             ImperativeLangParser parser = new ImperativeLangParser(lexer, symbolFactory);
 
-            // Parse the input and obtain the root of the AST (Program)
-            Symbol parseResult = parser.parse();
-            Program program = (Program) parseResult.value;
+            // Parse the input file
+            Symbol parseTree = parser.parse();
+            Program program = (Program) parseTree.value;
 
-            // Print the resulting AST
-            System.out.println("Parsed AST:");
+            // Perform semantic analysis
+            SemanticAnalyzer analyzer = new SemanticAnalyzer();
+            List<SemanticError> errors = analyzer.analyze(program);
+
+            // Check for semantic errors
+            if (!errors.isEmpty()) {
+                System.err.println("Semantic errors found:");
+                for (SemanticError error : errors) {
+                    System.err.println(error);
+                }
+                System.exit(1);
+            }
+
+            // Print the AST
+            System.out.println("Abstract Syntax Tree:");
             System.out.println(program);
 
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
+            // TODO: Execute the program or generate code
         } catch (Exception e) {
-            System.err.println("An error occurred during parsing: " + e.getMessage());
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }

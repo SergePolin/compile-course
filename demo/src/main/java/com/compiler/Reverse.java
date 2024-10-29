@@ -10,11 +10,4 @@ public class Reverse {
     public boolean isReverse() {
         return isReverse;
     }
-
-    @Override
-    public String toString() {
-        return "Reverse{" +
-                "isReverse=" + isReverse +
-                '}';
-    }
 }
