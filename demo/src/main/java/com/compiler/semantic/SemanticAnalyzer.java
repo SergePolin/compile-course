@@ -28,20 +28,6 @@ public class SemanticAnalyzer {
     private void visit(Program program) {
         // First pass: collect all global declarations
         for (Statement stmt : program.getStatements()) {
-            if (stmt instanceof RoutineDecl) {
-                RoutineDecl routine = (RoutineDecl) stmt;
-                symbolTable.declareRoutine(routine.getName(), routine);
-            } else if (stmt instanceof TypeDecl) {
-                TypeDecl type = (TypeDecl) stmt;
-                symbolTable.declareType(type.getName(), type.getType());
-            } else if (stmt instanceof VarDecl) {
-                VarDecl varDecl = (VarDecl) stmt;
-                symbolTable.declareVariable(varDecl.getName(), varDecl.getType());
-            }
-        }
-
-        // Second pass: analyze all statements
-        for (Statement stmt : program.getStatements()) {
             visitStatement(stmt);
         }
     }
@@ -240,13 +226,30 @@ public class SemanticAnalyzer {
             return new SimpleType("string");
         } else if (expr instanceof VariableReference) {
             String varName = ((VariableReference) expr).getName();
-            if (!symbolTable.isDefined(varName)) {
+            Type type = symbolTable.getType(varName);
+            if (type == null) {
                 errors.add(new SemanticError("Undefined variable '" + varName + "'"));
-                return null;
             }
-            return symbolTable.getType(varName);
+            return type;
         } else if (expr instanceof BinaryExpression) {
-            return getExpressionType(((BinaryExpression) expr).getLeft());
+            BinaryExpression binExpr = (BinaryExpression) expr;
+            Type leftType = getExpressionType(binExpr.getLeft());
+            Type rightType = getExpressionType(((BinaryExpression) expr).getRight());
+
+            // For arithmetic operations
+            if (leftType instanceof SimpleType && rightType instanceof SimpleType) {
+                String leftName = ((SimpleType) leftType).getName();
+                String rightName = ((SimpleType) rightType).getName();
+
+                if (leftName.equals("integer") && rightName.equals("integer")) {
+                    return new SimpleType("integer");
+                }
+                if ((leftName.equals("integer") || leftName.equals("real")) &&
+                        (rightName.equals("integer") || rightName.equals("real"))) {
+                    return new SimpleType("real");
+                }
+            }
+            return leftType;
         } else if (expr instanceof UnaryExpression) {
             return getExpressionType(((UnaryExpression) expr).getExpression());
         }
@@ -259,8 +262,27 @@ public class SemanticAnalyzer {
     }
 
     private boolean isTypeCompatible(Type expected, Type actual) {
-        // Implement type compatibility logic
-        return expected.equals(actual);
+        if (expected == null || actual == null) {
+            return false;
+        }
+
+        // Both types are SimpleType
+        if (expected instanceof SimpleType && actual instanceof SimpleType) {
+            String expectedName = ((SimpleType) expected).getName();
+            String actualName = ((SimpleType) actual).getName();
+
+            // Same type
+            if (expectedName.equals(actualName)) {
+                return true;
+            }
+
+            // Integer to Real conversion is allowed
+            if (expectedName.equals("real") && actualName.equals("integer")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean isBoolean(Type type) {
