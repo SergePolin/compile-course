@@ -25,6 +25,10 @@ public class Assignment extends Statement {
         return value;
     }
 
+    public void setValue(Expression value) {
+        this.value = value;
+    }
+
     @Override
     public String toString() {
         if (index != null) {

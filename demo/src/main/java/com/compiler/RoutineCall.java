@@ -11,10 +11,18 @@ public class RoutineCall extends Expression {
         this.arguments = arguments;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public List<Expression> getArguments() {
+        return arguments;
+    }
+
     @Override
     public Object evaluate() {
-        // TODO: Implement routine call
-        throw new UnsupportedOperationException("Routine call not implemented yet");
+        // TODO: Implement routine call evaluation
+        throw new UnsupportedOperationException("Routine call evaluation not implemented yet");
     }
 
     @Override

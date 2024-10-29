@@ -13,6 +13,10 @@ public class UnaryExpression extends Expression {
         return expression;
     }
 
+    public String getOperator() {
+        return operator;
+    }
+
     @Override
     public Object evaluate() {
         Object value = expression.evaluate();

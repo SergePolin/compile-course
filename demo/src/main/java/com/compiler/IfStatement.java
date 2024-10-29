@@ -25,6 +25,10 @@ public class IfStatement extends Statement {
         return elseBody;
     }
 
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

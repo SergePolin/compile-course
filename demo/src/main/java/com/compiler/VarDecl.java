@@ -23,6 +23,10 @@ public class VarDecl extends Statement implements VariableDeclaration {
         return initializer;
     }
 
+    public void setInitializer(Expression initializer) {
+        this.initializer = initializer;
+    }
+
     @Override
     public String toString() {
         return String.format("VarDecl(%s: %s%s)",

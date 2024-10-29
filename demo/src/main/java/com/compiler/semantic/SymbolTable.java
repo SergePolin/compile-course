@@ -30,6 +30,7 @@ public class SymbolTable {
         builtInTypes.add("real");
         builtInTypes.add("boolean");
         builtInTypes.add("string");
+        builtInTypes.add("void");
     }
 
     public void enterScope() {
@@ -73,6 +74,10 @@ public class SymbolTable {
 
     public void declareRoutine(String name, RoutineDecl routine) {
         routines.put(name, routine);
+    }
+
+    public RoutineDecl getRoutine(String name) {
+        return routines.get(name);
     }
 
     public void declareType(String name, Type type) {

@@ -19,6 +19,10 @@ public class WhileStatement extends Statement {
         return body;
     }
 
+    public void setCondition(Expression condition) {
+        this.condition = condition;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
