@@ -1,5 +1,3 @@
-routine main() : void is
-    var a: integer is 5;  // Used - kept
-    var b: integer is 10; // Unused - removed
-    print(a);
+routine main() is
+    print("Hello, World!");
 end;

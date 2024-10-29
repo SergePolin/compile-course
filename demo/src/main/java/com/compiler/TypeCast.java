@@ -9,6 +9,14 @@ public class TypeCast extends Expression {
         this.targetType = targetType;
     }
 
+    public Expression getExpression() {
+        return expr;
+    }
+
+    public Type getTargetType() {
+        return targetType;
+    }
+
     @Override
     public Object evaluate() {
         Object value = expr.evaluate();

@@ -381,6 +381,20 @@ public class SemanticAnalyzer {
             return null;
         }
 
+        if (expr instanceof TypeCast) {
+            TypeCast cast = (TypeCast) expr;
+            Type sourceType = getExpressionType(cast.getExpression());
+            Type targetType = cast.getTargetType();
+
+            // Check if cast is valid
+            if (isValidCast(sourceType, targetType)) {
+                return targetType;
+            } else {
+                errors.add(new SemanticError("Invalid type cast from " + sourceType + " to " + targetType));
+                return null;
+            }
+        }
+
         if (expr instanceof RoutineCall) {
             return getRoutineCallType((RoutineCall) expr);
         }
@@ -782,5 +796,43 @@ public class SemanticAnalyzer {
             return !(Boolean) operand;
         }
         throw new RuntimeException("Invalid operand for operator " + operator);
+    }
+
+    private boolean isValidCast(Type sourceType, Type targetType) {
+        if (sourceType == null || targetType == null) {
+            return false;
+        }
+
+        if (sourceType instanceof SimpleType && targetType instanceof SimpleType) {
+            String sourceName = ((SimpleType) sourceType).getName();
+            String targetName = ((SimpleType) targetType).getName();
+
+            // Same type casts are always valid
+            if (sourceName.equals(targetName)) {
+                return true;
+            }
+
+            // Numeric conversions (both ways)
+            if ((sourceName.equals("integer") || sourceName.equals("real")) &&
+                    (targetName.equals("integer") || targetName.equals("real"))) {
+                return true;
+            }
+
+            // Boolean conversions
+            if (sourceName.equals("boolean") && targetName.equals("integer")) {
+                return true; // boolean to integer
+            }
+            if (sourceName.equals("integer") && targetName.equals("boolean")) {
+                return true; // integer to boolean
+            }
+            if (sourceName.equals("real") && targetName.equals("boolean")) {
+                return true; // real to boolean (via integer)
+            }
+            if (sourceName.equals("boolean") && targetName.equals("real")) {
+                return true; // boolean to real (via integer)
+            }
+        }
+
+        return false;
     }
 }
