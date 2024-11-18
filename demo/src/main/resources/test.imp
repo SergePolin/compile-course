@@ -1,3 +1,7 @@
+
 routine main() is
-    print("Hello, World!");
+    var result: integer is 5+7+3;
+    if 3 < 5 then
+        print("3 is less than 5");
+    end;
 end;

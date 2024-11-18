@@ -10,7 +10,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         // Specify the input file path
-        String inputFilePath = "src/main/resources/test.imp"; // Update this path
+        String inputFilePath = "src/main/resources/test.imp";
 
         try {
             // Set up the lexer and parser
@@ -38,8 +38,6 @@ public class Main {
             // Print the AST
             System.out.println("Abstract Syntax Tree:");
             System.out.println(program);
-
-            // TODO: Execute the program or generate code
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
