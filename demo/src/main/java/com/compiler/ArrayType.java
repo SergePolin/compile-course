@@ -9,6 +9,14 @@ public class ArrayType extends Type {
         this.size = size;
     }
 
+    public Type getElementType() {
+        return elementType;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
     @Override
     public String toString() {
         return "ArrayType\n"

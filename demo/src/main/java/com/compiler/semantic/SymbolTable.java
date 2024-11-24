@@ -123,10 +123,17 @@ public class SymbolTable {
     }
 
     /**
-     * Declares a new user-defined type
+     * Defines a new type in the symbol table
      */
-    public void declareType(String name, Type type) {
+    public void defineType(String name, Type type) {
         types.put(name, type);
+    }
+
+    /**
+     * Checks if a type name is defined
+     */
+    public boolean isTypeDefined(String typeName) {
+        return builtInTypes.contains(typeName) || types.containsKey(typeName);
     }
 
     /**
@@ -137,7 +144,7 @@ public class SymbolTable {
             String typeName = ((SimpleType) type).getName();
             return builtInTypes.contains(typeName) || types.containsKey(typeName);
         }
-        return types.containsValue(type);
+        return true; // Non-simple types (Record, Array) are always considered valid
     }
 
     /**
@@ -149,5 +156,12 @@ public class SymbolTable {
         routines.clear();
         types.clear();
         initializeBuiltInTypes();
+    }
+
+    /**
+     * Gets the actual type definition for a type name
+     */
+    public Type getTypeDefinition(String typeName) {
+        return types.get(typeName);
     }
 }

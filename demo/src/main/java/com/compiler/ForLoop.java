@@ -37,10 +37,6 @@ public class ForLoop extends Statement {
         return end;
     }
 
-    public boolean isReverse() {
-        return reverse.isReverse();
-    }
-
     public void execute() {
         int startVal = ((Integer) start.evaluate());
         int endVal = ((Integer) end.evaluate());

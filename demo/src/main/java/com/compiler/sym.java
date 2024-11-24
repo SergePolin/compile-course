@@ -58,6 +58,7 @@ public class sym {
   public static final int ELSE = 9;
   public static final int READ = 22;
   public static final int WHILE = 10;
+  public static final int FLOAT = 60;
   public static final int RBRACE = 38;
   public static final int THEN = 19;
   public static final int END = 18;
@@ -128,7 +129,8 @@ public class sym {
   "OR",
   "XOR",
   "NOT",
-  "UMINUS"
+  "UMINUS",
+  "FLOAT"
   };
 }
 

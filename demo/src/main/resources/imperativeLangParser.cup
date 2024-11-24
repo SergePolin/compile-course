@@ -25,6 +25,7 @@ terminal PLUS, MINUS, MULTIPLY, DIVIDE, MOD;
 terminal EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL;
 terminal AND, OR, XOR, NOT;
 terminal UMINUS;
+terminal FLOAT;
 
 // Non-terminals
 non terminal Program program;
@@ -50,6 +51,7 @@ precedence nonassoc EQUAL, NOT_EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_E
 precedence left PLUS, MINUS;
 precedence left MULTIPLY, DIVIDE, MOD;
 precedence right UMINUS;
+precedence left DOT;
 
 // Start with the program
 start with program;
@@ -97,6 +99,8 @@ statement ::=
     {: RESULT = new ForLoop(var, rev, start, end, body); :}
     | IDENTIFIER:id ASSIGN expression:expr SEMICOLON
     {: RESULT = new Assignment(id, expr); :}
+    | IDENTIFIER:record DOT IDENTIFIER:field ASSIGN expression:expr SEMICOLON
+    {: RESULT = new Assignment(record + "." + field, expr); :}
     | IDENTIFIER:id LBRACKET expression:index RBRACKET ASSIGN expression:expr SEMICOLON
     {: RESULT = new Assignment(id, index, expr); :}
     | PRINT LPAREN expression:expr RPAREN SEMICOLON
@@ -135,6 +139,7 @@ parameter ::=
 type_spec ::= 
     INTEGER {: RESULT = new SimpleType("integer"); :}
     | REAL {: RESULT = new SimpleType("real"); :}
+    | FLOAT {: RESULT = new SimpleType("float"); :}
     | BOOLEAN {: RESULT = new SimpleType("boolean"); :}
     | STRING {: RESULT = new SimpleType("string"); :}
     | ARRAY LBRACKET INTEGER_LITERAL:size RBRACKET type_spec:elemType 
@@ -149,12 +154,6 @@ record_body ::=
        RESULT = list; :}
     | record_body:list VAR IDENTIFIER:id COLON type_spec:type SEMICOLON
     {: list.add(new VarDecl(id, type, null)); RESULT = list; :}
-    | IDENTIFIER:type IDENTIFIER:id SEMICOLON
-    {: List<VariableDeclaration> list = new ArrayList<>(); 
-       list.add(new VarDecl(id, new SimpleType(type), null)); 
-       RESULT = list; :}
-    | record_body:list IDENTIFIER:type IDENTIFIER:id SEMICOLON
-    {: list.add(new VarDecl(id, new SimpleType(type), null)); RESULT = list; :}
     ;
 
 expression ::= 
@@ -163,6 +162,8 @@ expression ::=
     | STRING_LITERAL:value {: RESULT = new StringLiteral(value); :}
     | BOOLEAN_LITERAL:value {: RESULT = new BooleanLiteral(value); :}
     | IDENTIFIER:name {: RESULT = new VariableReference(name); :}
+    | IDENTIFIER:record DOT IDENTIFIER:field 
+    {: RESULT = new RecordAccess(record, field); :}
     | expression:left PLUS expression:right {: RESULT = new BinaryExpression(left, "+", right); :}
     | expression:left MINUS expression:right {: RESULT = new BinaryExpression(left, "-", right); :}
     | expression:left MULTIPLY expression:right {: RESULT = new BinaryExpression(left, "*", right); :}
@@ -181,7 +182,6 @@ expression ::=
     | expression:left GREATER_OR_EQUAL expression:right {: RESULT = new BinaryExpression(left, ">=", right); :}
     | expression:expr AS type_spec:targetType {: RESULT = new TypeCast(expr, targetType); :}
     | IDENTIFIER:name LBRACKET expression:index RBRACKET {: RESULT = new ArrayAccess(name, index); :}
-    | IDENTIFIER:record DOT IDENTIFIER:field {: RESULT = new RecordAccess(record, field); :}
     | IDENTIFIER:name LPAREN argument_list:args RPAREN {: RESULT = new RoutineCall(name, args); :}
     | LPAREN expression:expr RPAREN {: RESULT = expr; :}
     ;

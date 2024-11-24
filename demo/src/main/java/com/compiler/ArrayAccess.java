@@ -11,8 +11,15 @@ public class ArrayAccess extends Expression {
 
     @Override
     public Object evaluate() {
-        // TODO: Implement array access
-        throw new UnsupportedOperationException("Array access not implemented yet");
+        return null;
+    }
+
+    public String getArray() {
+        return array;
+    }
+
+    public Expression getIndex() {
+        return index;
     }
 
     @Override

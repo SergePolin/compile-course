@@ -49,9 +49,44 @@ public class SemanticAnalyzer {
         errors.clear();
         symbolTable.clear();
         usedVariables.clear();
-        visit(program);
-        optimizeConstantExpressions(program);
-        removeUnusedVariables(program);
+        
+        // Create global scope
+        symbolTable.enterScope();
+        
+        // First pass: collect all type declarations
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof TypeDecl) {
+                visitTypeDecl((TypeDecl) stmt);
+            }
+        }
+        
+        // Second pass: collect all variable declarations
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof VarDecl || stmt instanceof ArrayDecl) {
+                visitStatement(stmt);
+            }
+        }
+        
+        // Third pass: analyze routine declarations
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl) {
+                visitRoutineDecl((RoutineDecl) stmt);
+            }
+        }
+        
+        // Fourth pass: analyze remaining statements
+        for (Statement stmt : program.getStatements()) {
+            if (!(stmt instanceof TypeDecl) && 
+                !(stmt instanceof VarDecl) && 
+                !(stmt instanceof ArrayDecl) && 
+                !(stmt instanceof RoutineDecl)) {
+                visitStatement(stmt);
+            }
+        }
+        
+        // Exit global scope
+        symbolTable.exitScope();
+        
         return errors;
     }
 
@@ -59,7 +94,14 @@ public class SemanticAnalyzer {
      * Visits each statement in the program to perform semantic analysis
      */
     private void visit(Program program) {
-        // First pass: collect all routine declarations
+        // First pass: collect all type declarations
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof TypeDecl) {
+                visitTypeDecl((TypeDecl) stmt);
+            }
+        }
+
+        // Second pass: collect routine declarations
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof RoutineDecl) {
                 RoutineDecl routine = (RoutineDecl) stmt;
@@ -67,12 +109,17 @@ public class SemanticAnalyzer {
             }
         }
 
-        // Second pass: analyze routine bodies and other statements
+        // Third pass: analyze all other statements
+        for (Statement stmt : program.getStatements()) {
+            if (!(stmt instanceof TypeDecl) && !(stmt instanceof RoutineDecl)) {
+                visitStatement(stmt);
+            }
+        }
+
+        // Fourth pass: analyze routine bodies
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof RoutineDecl) {
                 visitRoutineDecl((RoutineDecl) stmt);
-            } else {
-                visitStatement(stmt);
             }
         }
     }
@@ -85,6 +132,8 @@ public class SemanticAnalyzer {
     private void visitStatement(Statement stmt) {
         if (stmt instanceof VarDecl) {
             visitVarDecl((VarDecl) stmt);
+        } else if (stmt instanceof ArrayDecl) {
+            visitArrayDecl((ArrayDecl) stmt);
         } else if (stmt instanceof Assignment) {
             visitAssignment((Assignment) stmt);
         } else if (stmt instanceof IfStatement) {
@@ -129,27 +178,24 @@ public class SemanticAnalyzer {
             return;
         }
 
-        // Check if type exists
         Type declaredType = decl.getType();
+        
+        // If it's a simple type, check if it's a user-defined type
+        if (declaredType instanceof SimpleType) {
+            String typeName = ((SimpleType) declaredType).getName();
+            Type actualType = symbolTable.getTypeDefinition(typeName);
+            if (actualType != null) {
+                declaredType = actualType;
+            }
+        }
+        
+        // Check if type exists
         if (!isValidType(declaredType)) {
             errors.add(new SemanticError("Unknown type " + declaredType));
             return;
         }
 
-        // Check initialization type if present
-        if (decl.getInitializer() != null) {
-            Type initType = getExpressionType(decl.getInitializer());
-            if (initType == null) {
-                errors.add(new SemanticError("Invalid initializer expression for variable " + decl.getName()));
-                return;
-            }
-            if (!isTypeCompatible(declaredType, initType)) {
-                errors.add(new SemanticError("Type mismatch: cannot initialize variable of type " +
-                        declaredType + " with value of type " + initType));
-                return;
-            }
-        }
-
+        // Add variable to symbol table
         symbolTable.declareVariable(decl.getName(), declaredType);
     }
 
@@ -159,27 +205,107 @@ public class SemanticAnalyzer {
      * - Type compatibility between variable and value
      */
     private void visitAssignment(Assignment assign) {
-        // Check if variable exists
-        if (!symbolTable.isDefined(assign.getTarget())) {
-            errors.add(new SemanticError("Undefined variable " + assign.getTarget()));
+        String target = assign.getTarget();
+        
+        // Handle array assignment
+        if (assign.getIndex() != null) {
+            // Check if array variable exists
+            if (!symbolTable.isDefined(target)) {
+                errors.add(new SemanticError("Undefined array variable " + target));
+                return;
+            }
+            
+            Type arrayType = symbolTable.getType(target);
+            if (!(arrayType instanceof ArrayType)) {
+                errors.add(new SemanticError("Variable " + target + " is not an array"));
+                return;
+            }
+            
+            // Check index type (must be integer)
+            Type indexType = getExpressionType(assign.getIndex());
+            if (!(indexType instanceof SimpleType && ((SimpleType)indexType).getName().equals("integer"))) {
+                errors.add(new SemanticError("Array index must be an integer"));
+                return;
+            }
+            
+            // Check value type matches array element type
+            Type elementType = ((ArrayType)arrayType).getElementType();
+            Type valueType = getExpressionType(assign.getValue());
+            
+            if (!isTypeCompatible(elementType, valueType)) {
+                errors.add(new SemanticError("Type mismatch in array assignment: cannot assign value of type " +
+                        valueType + " to array element of type " + elementType));
+            }
+            
+            usedVariables.add(target);
+            return;
+        }
+        
+        // Handle record field assignment
+        if (target.contains(".")) {
+            String[] parts = target.split("\\.");
+            String recordName = parts[0];
+            String fieldName = parts[1];
+            
+            // Check if record exists
+            if (!symbolTable.isDefined(recordName)) {
+                errors.add(new SemanticError("Undefined record variable " + recordName));
+                return;
+            }
+            
+            Type recordType = symbolTable.getType(recordName);
+            
+            // If it's a simple type, get the actual record type definition
+            if (recordType instanceof SimpleType) {
+                String typeName = ((SimpleType) recordType).getName();
+                Type actualType = symbolTable.getTypeDefinition(typeName);
+                if (actualType instanceof RecordType) {
+                    recordType = actualType;
+                } else {
+                    errors.add(new SemanticError("Variable " + recordName + " is not a record"));
+                    return;
+                }
+            }
+            
+            if (!(recordType instanceof RecordType)) {
+                errors.add(new SemanticError("Variable " + recordName + " is not a record"));
+                return;
+            }
+            
+            RecordType record = (RecordType) recordType;
+            if (!record.hasField(fieldName)) {
+                errors.add(new SemanticError("Field " + fieldName + " does not exist in record " + recordName));
+                return;
+            }
+            
+            Type fieldType = record.getFieldType(fieldName);
+            Type valueType = getExpressionType(assign.getValue());
+            
+            if (!isTypeCompatible(fieldType, valueType)) {
+                errors.add(new SemanticError("Type mismatch in assignment: cannot assign value of type " +
+                        valueType + " to field of type " + fieldType));
+            }
+            
+            // Mark record as used
+            usedVariables.add(recordName);
+            return;
+        }
+        
+        // Regular variable assignment
+        if (!symbolTable.isDefined(target)) {
+            errors.add(new SemanticError("Undefined variable " + target));
             return;
         }
 
-        Type targetType = symbolTable.getType(assign.getTarget());
+        Type targetType = symbolTable.getType(target);
         Type valueType = getExpressionType(assign.getValue());
-
-        if (valueType == null) {
-            errors.add(new SemanticError("Cannot assign null value to variable " + assign.getTarget()));
-            return;
-        }
 
         if (!isTypeCompatible(targetType, valueType)) {
             errors.add(new SemanticError("Type mismatch in assignment: cannot assign value of type " +
                     valueType + " to variable of type " + targetType));
         }
 
-        // Mark variable as used
-        usedVariables.add(assign.getTarget());
+        usedVariables.add(target);
     }
 
     /**
@@ -278,20 +404,35 @@ public class SemanticAnalyzer {
      */
     private void visitPrintStatement(PrintStatement printStmt) {
         Expression expr = printStmt.getExpression();
-
-        // Check if the expression is a variable reference
-        if (expr instanceof VariableReference) {
-            String varName = ((VariableReference) expr).getName();
-            if (!symbolTable.isDefined(varName)) {
-                errors.add(new SemanticError("Undefined variable '" + varName + "' in print statement"));
-                return;
-            }
+        Type exprType = getExpressionType(expr);
+        
+        if (exprType == null) {
+            errors.add(new SemanticError("Invalid expression in print statement"));
+            return;
         }
 
-        // Check if the expression type is valid
-        Type expressionType = getExpressionType(expr);
-        if (!isValidType(expressionType)) {
-            errors.add(new SemanticError("Invalid type for print statement"));
+        // Handle array element printing
+        if (expr instanceof ArrayAccess) {
+            ArrayAccess access = (ArrayAccess) expr;
+            String arrayName = access.getArray();
+            
+            if (!symbolTable.isDefined(arrayName)) {
+                errors.add(new SemanticError("Undefined array " + arrayName));
+                return;
+            }
+            
+            Type arrayType = symbolTable.getType(arrayName);
+            if (!(arrayType instanceof ArrayType)) {
+                errors.add(new SemanticError("Variable " + arrayName + " is not an array"));
+                return;
+            }
+            
+            // Check index type
+            Type indexType = getExpressionType(access.getIndex());
+            if (!(indexType instanceof SimpleType && ((SimpleType)indexType).getName().equals("integer"))) {
+                errors.add(new SemanticError("Array index must be an integer"));
+                return;
+            }
         }
     }
 
@@ -399,6 +540,78 @@ public class SemanticAnalyzer {
             return null;
         }
 
+        if (expr instanceof ArrayAccess) {
+            ArrayAccess access = (ArrayAccess) expr;
+            String arrayName = access.getArray();
+            
+            if (!symbolTable.isDefined(arrayName)) {
+                errors.add(new SemanticError("Undefined array " + arrayName));
+                return null;
+            }
+            
+            Type arrayType = symbolTable.getType(arrayName);
+            if (!(arrayType instanceof ArrayType)) {
+                errors.add(new SemanticError("Variable " + arrayName + " is not an array"));
+                return null;
+            }
+            
+            // Check index type
+            Type indexType = getExpressionType(access.getIndex());
+            if (!(indexType instanceof SimpleType && ((SimpleType)indexType).getName().equals("integer"))) {
+                errors.add(new SemanticError("Array index must be an integer"));
+                return null;
+            }
+            
+            usedVariables.add(arrayName);
+            return ((ArrayType)arrayType).getElementType();
+        }
+
+        if (expr instanceof VariableReference) {
+            String varName = ((VariableReference) expr).getName();
+            if (!symbolTable.isDefined(varName)) {
+                errors.add(new SemanticError("Undefined variable '" + varName + "'"));
+                return null;
+            }
+            Type type = symbolTable.getType(varName);
+            usedVariables.add(varName);
+            return type;
+        }
+
+        if (expr instanceof RecordAccess) {
+            RecordAccess access = (RecordAccess) expr;
+            Type recordType = symbolTable.getType(access.getRecord());
+            
+            if (recordType == null) {
+                errors.add(new SemanticError("Undefined variable " + access.getRecord()));
+                return null;
+            }
+            
+            // If it's a simple type, get the actual record type definition
+            if (recordType instanceof SimpleType) {
+                String typeName = ((SimpleType) recordType).getName();
+                Type actualType = symbolTable.getTypeDefinition(typeName);
+                if (actualType instanceof RecordType) {
+                    recordType = actualType;
+                } else {
+                    errors.add(new SemanticError("Variable " + access.getRecord() + " is not a record"));
+                    return null;
+                }
+            }
+            
+            if (!(recordType instanceof RecordType)) {
+                errors.add(new SemanticError("Variable " + access.getRecord() + " is not a record"));
+                return null;
+            }
+            
+            RecordType record = (RecordType) recordType;
+            if (!record.hasField(access.getField())) {
+                errors.add(new SemanticError("Field " + access.getField() + " does not exist in record " + access.getRecord()));
+                return null;
+            }
+            
+            return record.getFieldType(access.getField());
+        }
+
         if (expr instanceof TypeCast) {
             TypeCast cast = (TypeCast) expr;
             Type sourceType = getExpressionType(cast.getExpression());
@@ -420,18 +633,16 @@ public class SemanticAnalyzer {
         if (expr instanceof IntegerLiteral) {
             return new SimpleType("integer");
         } else if (expr instanceof RealLiteral) {
+            // Handle float literals
+            String value = expr.toString();
+            if (value.contains(".")) {
+                return new SimpleType("float");
+            }
             return new SimpleType("real");
         } else if (expr instanceof BooleanLiteral) {
             return new SimpleType("boolean");
         } else if (expr instanceof StringLiteral) {
             return new SimpleType("string");
-        } else if (expr instanceof VariableReference) {
-            String varName = ((VariableReference) expr).getName();
-            Type type = symbolTable.getType(varName);
-            if (type == null) {
-                errors.add(new SemanticError("Undefined variable '" + varName + "'"));
-            }
-            return type;
         } else if (expr instanceof BinaryExpression) {
             BinaryExpression binExpr = (BinaryExpression) expr;
             Type leftType = getExpressionType(binExpr.getLeft());
@@ -542,8 +753,32 @@ public class SemanticAnalyzer {
      * Checks if a type is valid according to the symbol table
      */
     private boolean isValidType(Type type) {
-        // Check if the type is valid (exists in the symbol table)
-        return symbolTable.isTypeDefined(type);
+        if (type == null) {
+            return false;
+        }
+
+        if (type instanceof SimpleType) {
+            String typeName = ((SimpleType) type).getName();
+            return typeName.equals("integer") || 
+                   typeName.equals("real") || 
+                   typeName.equals("float") || 
+                   typeName.equals("boolean") || 
+                   typeName.equals("string") ||
+                   symbolTable.isTypeDefined(typeName);
+        } else if (type instanceof ArrayType) {
+            ArrayType arrayType = (ArrayType) type;
+            return isValidType(arrayType.getElementType());
+        } else if (type instanceof RecordType) {
+            RecordType recordType = (RecordType) type;
+            // Validate all field types recursively
+            for (VariableDeclaration field : recordType.getFields()) {
+                if (!isValidType(field.getType())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -554,24 +789,30 @@ public class SemanticAnalyzer {
             return false;
         }
 
-        // Both types are SimpleType
+        // Handle array type compatibility
+        if (expected instanceof ArrayType && actual instanceof ArrayType) {
+            ArrayType expectedArray = (ArrayType) expected;
+            ArrayType actualArray = (ArrayType) actual;
+            return expectedArray.getSize() == actualArray.getSize() &&
+                   isTypeCompatible(expectedArray.getElementType(), actualArray.getElementType());
+        }
+
+        // Handle simple types
         if (expected instanceof SimpleType && actual instanceof SimpleType) {
             String expectedName = ((SimpleType) expected).getName();
             String actualName = ((SimpleType) actual).getName();
 
-            // Same type
+            // Direct type match
             if (expectedName.equals(actualName)) {
                 return true;
             }
 
-            // Integer to Real conversion is allowed
-            if (expectedName.equals("real") && actualName.equals("integer")) {
-                return true;
+            // Numeric type conversions
+            if (expectedName.equals("float")) {
+                return actualName.equals("integer") || actualName.equals("real");
             }
-
-            // String concatenation only allows string to string
-            if (expectedName.equals("string")) {
-                return actualName.equals("string");
+            if (expectedName.equals("real")) {
+                return actualName.equals("integer") || actualName.equals("float");
             }
         }
 
@@ -852,5 +1093,84 @@ public class SemanticAnalyzer {
         }
 
         return false;
+    }
+
+    /**
+     * Checks record access for validity
+     */
+    private void visitRecordAccess(RecordAccess access) {
+        // Check if the record variable exists
+        if (!symbolTable.isDefined(access.getRecord())) {
+            errors.add(new SemanticError("Undefined record variable " + access.getRecord()));
+            return;
+        }
+
+        // Get the record's type
+        Type recordType = symbolTable.getType(access.getRecord());
+        if (!(recordType instanceof RecordType)) {
+            errors.add(new SemanticError("Variable " + access.getRecord() + " is not a record"));
+            return;
+        }
+
+        // Check if the field exists in the record
+        RecordType record = (RecordType) recordType;
+        if (!record.hasField(access.getField())) {
+            errors.add(new SemanticError("Field " + access.getField() + " does not exist in record " + access.getRecord()));
+        }
+
+        // Mark record variable as used
+        usedVariables.add(access.getRecord());
+    }
+
+    private void visitTypeDecl(TypeDecl typeDecl) {
+        String typeName = typeDecl.getName();
+        Type type = typeDecl.getType();
+        
+        // Check if type is already defined
+        if (symbolTable.isTypeDefined(typeName)) {
+            errors.add(new SemanticError("Type " + typeName + " is already defined"));
+            return;
+        }
+        
+        // For record types, validate all field types
+        if (type instanceof RecordType) {
+            RecordType recordType = (RecordType) type;
+            for (VariableDeclaration field : recordType.getFields()) {
+                if (!isValidType(field.getType())) {
+                    errors.add(new SemanticError("Invalid field type " + field.getType() + 
+                        " in record " + typeName));
+                    return;
+                }
+            }
+        }
+        
+        // Add the type to the symbol table
+        symbolTable.defineType(typeName, type);
+    }
+
+    private void visitArrayDecl(ArrayDecl decl) {
+        // Check if array is already declared in current scope
+        if (symbolTable.isDefinedInCurrentScope(decl.getName())) {
+            errors.add(new SemanticError("Array " + decl.getName() + " is already declared in this scope"));
+            return;
+        }
+
+        ArrayType arrayType = (ArrayType) decl.getType();
+        
+        // Verify element type
+        Type elementType = arrayType.getElementType();
+        if (!isValidType(elementType)) {
+            errors.add(new SemanticError("Invalid array element type: " + elementType));
+            return;
+        }
+        
+        // Verify array size is positive
+        if (arrayType.getSize() <= 0) {
+            errors.add(new SemanticError("Array size must be positive"));
+            return;
+        }
+
+        // Add array to symbol table
+        symbolTable.declareVariable(decl.getName(), arrayType);
     }
 }

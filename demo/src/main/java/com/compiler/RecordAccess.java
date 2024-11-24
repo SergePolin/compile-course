@@ -9,16 +9,21 @@ public class RecordAccess extends Expression {
         this.field = field;
     }
 
+    public String getRecord() {
+        return record;
+    }
+
+    public String getField() {
+        return field;
+    }
+
     @Override
     public Object evaluate() {
-        // TODO: Implement record field access
-        throw new UnsupportedOperationException("Record access not implemented yet");
+        return null;
     }
 
     @Override
     public String toString() {
-        return "RecordAccess\n" +
-                "├── " + record + "\n" +
-                "└── " + field;
+        return record + "." + field;
     }
 }

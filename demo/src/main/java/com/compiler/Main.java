@@ -6,21 +6,11 @@ import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java.io.FileReader;
 import java.util.List;
-import com.compiler.interpreter.Interpreter;
-
 
 public class Main {
     public static void main(String[] args) {
         // Specify the input file path
         String inputFilePath = "src/main/resources/test.imp";
-        boolean debug = false;  // Set to true to enable debug output
-
-        // // Check for debug flag in arguments
-        // for (String arg : args) {
-        //     if (arg.equals("--debug")) {
-        //         debug = true;
-        //     }
-        // }
 
         try {
             // Set up the lexer and parser
@@ -31,6 +21,9 @@ public class Main {
             // Parse the input file
             Symbol parseTree = parser.parse();
             Program program = (Program) parseTree.value;
+
+            // Add this after parsing but before semantic analysis
+            System.out.println("Parsed successfully!");
 
             // Perform semantic analysis
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
@@ -45,15 +38,11 @@ public class Main {
                 System.exit(1);
             }
 
+            System.out.println("Semantic analysis completed successfully!");
+
             // Print the AST
             System.out.println("Abstract Syntax Tree:");
             System.out.println(program);
-
-            // Execute the program using the interpreter
-            System.out.println("\nProgram output:");
-            Interpreter interpreter = new Interpreter();
-            interpreter.setDebug(debug);  // Set debug mode based on command line argument
-            interpreter.interpret(program);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);

@@ -68,10 +68,12 @@ StringLiteral  = \"([^\"]|\\\")*\"
 "as"        { return symbol("AS", sym.AS); }
 "reverse"   { return symbol("REVERSE", sym.REVERSE); }
 "record"    { return symbol("RECORD", sym.RECORD); }
+"array"     { return symbol("ARRAY", sym.ARRAY); }
 
 /* Types */
 "integer"   { return symbol("INTEGER", sym.INTEGER); }
 "real"      { return symbol("REAL", sym.REAL); }
+"float"     { return symbol("FLOAT", sym.FLOAT); }
 "boolean"   { return symbol("BOOLEAN", sym.BOOLEAN); }
 "string"    { return symbol("STRING", sym.STRING); }
 "array"     { return symbol("ARRAY", sym.ARRAY); }
