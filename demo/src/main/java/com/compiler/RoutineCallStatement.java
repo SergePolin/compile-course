@@ -11,6 +11,14 @@ public class RoutineCallStatement extends Statement {
         this.arguments = arguments;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public List<Expression> getArguments() {
+        return arguments;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -19,10 +27,13 @@ public class RoutineCallStatement extends Statement {
         sb.append("└── arguments:\n");
         for (int i = 0; i < arguments.size(); i++) {
             Expression arg = arguments.get(i);
-            if (i == arguments.size() - 1) {
-                sb.append("    └── ").append(arg).append("\n");
-            } else {
-                sb.append("    ├── ").append(arg).append("\n");
+            String[] lines = arg.toString().split("\n");
+            for (int j = 0; j < lines.length; j++) {
+                if (i == arguments.size() - 1) {
+                    sb.append(j == 0 ? "    └── " : "        ").append(lines[j]).append("\n");
+                } else {
+                    sb.append(j == 0 ? "    ├── " : "    │   ").append(lines[j]).append("\n");
+                }
             }
         }
         return sb.toString();

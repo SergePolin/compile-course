@@ -40,7 +40,7 @@ Comment        = "//" [^\r\n]* {LineTerminator}?
 Identifier     = [:jletter:] [:jletterdigit:]*
 IntegerLiteral = 0 | [1-9][0-9]* | -[1-9][0-9]*
 RealLiteral    = ({IntegerLiteral}\.[0-9]+)
-StringLiteral  = \"([^\"]|\\\")*\"
+StringLiteral  = \"([^\"\n\r\\]|\\[ntbrf\"\\])*\"
 
 %%
 
@@ -76,7 +76,6 @@ StringLiteral  = \"([^\"]|\\\")*\"
 "float"     { return symbol("FLOAT", sym.FLOAT); }
 "boolean"   { return symbol("BOOLEAN", sym.BOOLEAN); }
 "string"    { return symbol("STRING", sym.STRING); }
-"array"     { return symbol("ARRAY", sym.ARRAY); }
 
 /* Operators */
 "+"         { return symbol("PLUS", sym.PLUS); }
@@ -112,8 +111,7 @@ StringLiteral  = \"([^\"]|\\\")*\"
 /* Literals */
 {IntegerLiteral} { return symbol("INTEGER_LITERAL", sym.INTEGER_LITERAL, Integer.parseInt(yytext())); }
 {RealLiteral}    { return symbol("REAL_LITERAL", sym.REAL_LITERAL, Double.parseDouble(yytext())); }
-{StringLiteral}  { return symbol("STRING_LITERAL", sym.STRING_LITERAL, 
-                           yytext().substring(1, yytext().length()-1)); }
+{StringLiteral}  { return symbol("STRING_LITERAL", sym.STRING_LITERAL, yytext()); }
 {Identifier}     { return symbol("IDENTIFIER", sym.IDENTIFIER, yytext()); }
 
 /* Whitespace */

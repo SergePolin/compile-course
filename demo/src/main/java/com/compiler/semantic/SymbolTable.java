@@ -110,9 +110,14 @@ public class SymbolTable {
 
     /**
      * Declares a new routine with its name and declaration
+     * @return false if routine is already defined, true otherwise
      */
-    public void declareRoutine(String name, RoutineDecl routine) {
+    public boolean declareRoutine(String name, RoutineDecl routine) {
+        if (routines.containsKey(name)) {
+            return false;
+        }
         routines.put(name, routine);
+        return true;
     }
 
     /**
@@ -120,6 +125,13 @@ public class SymbolTable {
      */
     public RoutineDecl getRoutine(String name) {
         return routines.get(name);
+    }
+
+    /**
+     * Checks if a routine is defined
+     */
+    public boolean isRoutineDefined(String name) {
+        return routines.containsKey(name);
     }
 
     /**
@@ -153,7 +165,7 @@ public class SymbolTable {
     public void clear() {
         scopes.clear();
         scopes.add(new HashMap<>());
-        routines.clear();
+        routines.clear();  // Clear routines map
         types.clear();
         initializeBuiltInTypes();
     }
@@ -163,5 +175,13 @@ public class SymbolTable {
      */
     public Type getTypeDefinition(String typeName) {
         return types.get(typeName);
+    }
+
+    public boolean declare(String name, Type type) {
+        if (isDefinedInCurrentScope(name)) {
+            return false;
+        }
+        scopes.get(scopes.size() - 1).put(name, type);
+        return true;
     }
 }

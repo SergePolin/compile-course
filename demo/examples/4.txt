@@ -1,0 +1,9 @@
+routine main() is
+    var num: integer is -10;
+
+    if num > 0 then
+        print("Positive");
+    else
+        print("Non positive");
+    end;
+end;

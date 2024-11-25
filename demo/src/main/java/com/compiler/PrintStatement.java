@@ -11,6 +11,7 @@ public class PrintStatement extends Statement {
         return expression;
     }
 
+    @Override
     public void execute() {
         Object value = expression.evaluate();
         System.out.println(value);
@@ -18,7 +19,6 @@ public class PrintStatement extends Statement {
 
     @Override
     public String toString() {
-        return "Print\n" +
-                "└── " + expression.toString().replace("\n", "\n    ");
+        return "PrintStatement\n└── " + expression.toString();
     }
 }

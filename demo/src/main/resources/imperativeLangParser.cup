@@ -3,6 +3,8 @@ package com.compiler;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import com.compiler.*;
 
 parser code {:
@@ -137,11 +139,11 @@ parameter ::=
     ;
 
 type_spec ::= 
-    INTEGER {: RESULT = new SimpleType("integer"); :}
+    INTEGER {: RESULT = Type.INTEGER; :}
     | REAL {: RESULT = new SimpleType("real"); :}
     | FLOAT {: RESULT = new SimpleType("float"); :}
-    | BOOLEAN {: RESULT = new SimpleType("boolean"); :}
-    | STRING {: RESULT = new SimpleType("string"); :}
+    | BOOLEAN {: RESULT = Type.BOOLEAN; :}
+    | STRING {: RESULT = Type.STRING; :}
     | ARRAY LBRACKET INTEGER_LITERAL:size RBRACKET type_spec:elemType 
     {: RESULT = new ArrayType(elemType, size); :}
     | IDENTIFIER:name {: RESULT = new SimpleType(name); :}
@@ -159,7 +161,11 @@ record_body ::=
 expression ::= 
     INTEGER_LITERAL:value {: RESULT = new IntegerLiteral(value); :}
     | REAL_LITERAL:value {: RESULT = new RealLiteral(value); :}
-    | STRING_LITERAL:value {: RESULT = new StringLiteral(value); :}
+    | STRING_LITERAL:value 
+    {: 
+        System.out.println("[DEBUG] Parsing string literal: " + value);
+        RESULT = new StringLiteral(value); 
+    :}
     | BOOLEAN_LITERAL:value {: RESULT = new BooleanLiteral(value); :}
     | IDENTIFIER:name {: RESULT = new VariableReference(name); :}
     | IDENTIFIER:record DOT IDENTIFIER:field 

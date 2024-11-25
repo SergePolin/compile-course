@@ -9,6 +9,10 @@ public class BlockStatement extends Statement {
         this.statements = statements;
     }
 
+    public List<Statement> getStatements() {
+        return statements;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

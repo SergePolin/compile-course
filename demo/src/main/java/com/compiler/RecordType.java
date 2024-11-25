@@ -1,42 +1,40 @@
 package com.compiler;
 
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
 
 public class RecordType extends Type {
-    private Map<String, Type> fields;
-    private List<VariableDeclaration> fieldDeclarations;
-    
-    public RecordType(List<VariableDeclaration> fieldDecls) {
-        this.fieldDeclarations = fieldDecls;
+    private final Map<String, Type> fields;
+
+    public RecordType(String name, Map<String, Type> fields) {
+        super("record " + name);
+        this.fields = fields;
+    }
+
+    // Constructor for creating from list of variable declarations
+    public RecordType(List<VariableDeclaration> fields) {
+        super("record");
         this.fields = new HashMap<>();
-        for (VariableDeclaration decl : fieldDecls) {
-            fields.put(decl.getName(), decl.getType());
+        for (VariableDeclaration field : fields) {
+            this.fields.put(field.getName(), field.getType());
         }
     }
-    
-    public boolean hasField(String fieldName) {
-        return fields.containsKey(fieldName);
+
+    public Map<String, Type> getFields() {
+        return fields;
     }
-    
+
     public Type getFieldType(String fieldName) {
         return fields.get(fieldName);
     }
-    
-    public Set<String> getFieldNames() {
-        return fields.keySet();
+
+    public boolean hasField(String fieldName) {
+        return fields.containsKey(fieldName);
     }
-    
-    public List<VariableDeclaration> getFields() {
-        return fieldDeclarations;
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("record {\n");
-        for (VariableDeclaration field : fieldDeclarations) {
-            sb.append("  ").append(field.toString()).append("\n");
-        }
-        sb.append("}");
-        return sb.toString();
+
+    // Make fields iterable
+    public Iterable<Map.Entry<String, Type>> getFieldEntries() {
+        return fields.entrySet();
     }
 }

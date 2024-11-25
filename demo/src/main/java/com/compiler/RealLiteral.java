@@ -12,6 +12,10 @@ public class RealLiteral extends Expression {
         return value;
     }
 
+    public double getValue() {
+        return value;
+    }
+
     @Override
     public String toString() {
         return "RealLiteral\n" +

@@ -53,28 +53,38 @@ public class SemanticAnalyzer {
         // Create global scope
         symbolTable.enterScope();
         
-        // First pass: collect all type declarations
+        // First pass: collect all routine declarations
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl) {
+                RoutineDecl routine = (RoutineDecl) stmt;
+                if (!symbolTable.declareRoutine(routine.getName(), routine)) {
+                    errors.add(new SemanticError("Routine " + routine.getName() + " is already defined"));
+                }
+            }
+        }
+        
+        // Second pass: collect all type declarations
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof TypeDecl) {
                 visitTypeDecl((TypeDecl) stmt);
             }
         }
         
-        // Second pass: collect all variable declarations
+        // Third pass: collect all variable declarations
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof VarDecl || stmt instanceof ArrayDecl) {
                 visitStatement(stmt);
             }
         }
         
-        // Third pass: analyze routine declarations
+        // Fourth pass: analyze routine bodies
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof RoutineDecl) {
-                visitRoutineDecl((RoutineDecl) stmt);
+                visitRoutineBody((RoutineDecl) stmt);
             }
         }
         
-        // Fourth pass: analyze remaining statements
+        // Fifth pass: analyze remaining statements
         for (Statement stmt : program.getStatements()) {
             if (!(stmt instanceof TypeDecl) && 
                 !(stmt instanceof VarDecl) && 
@@ -139,29 +149,15 @@ public class SemanticAnalyzer {
         } else if (stmt instanceof IfStatement) {
             visitIfStatement((IfStatement) stmt);
         } else if (stmt instanceof WhileStatement) {
-            boolean wasInsideLoop = insideLoop;
-            insideLoop = true;
             visitWhileStatement((WhileStatement) stmt);
-            insideLoop = wasInsideLoop;
         } else if (stmt instanceof ForLoop) {
-            boolean wasInsideLoop = insideLoop;
-            insideLoop = true;
             visitForLoop((ForLoop) stmt);
-            insideLoop = wasInsideLoop;
-        } else if (stmt instanceof ReturnStatement) {
-            if (!insideRoutine) {
-                errors.add(new SemanticError("Return statement can only appear inside a routine"));
-            }
-            visitReturnStatement((ReturnStatement) stmt);
         } else if (stmt instanceof PrintStatement) {
             visitPrintStatement((PrintStatement) stmt);
-        } else if (stmt instanceof ReadStatement) {
-            visitReadStatement((ReadStatement) stmt);
-        } else if (stmt instanceof RoutineDecl) {
-            boolean wasInsideRoutine = insideRoutine;
-            insideRoutine = true;
-            visitRoutineDecl((RoutineDecl) stmt);
-            insideRoutine = wasInsideRoutine;
+        } else if (stmt instanceof ReturnStatement) {
+            visitReturnStatement((ReturnStatement) stmt);
+        } else if (stmt instanceof RoutineCallStatement) {
+            visitRoutineCallStatement((RoutineCallStatement) stmt);
         }
     }
 
@@ -771,8 +767,8 @@ public class SemanticAnalyzer {
         } else if (type instanceof RecordType) {
             RecordType recordType = (RecordType) type;
             // Validate all field types recursively
-            for (VariableDeclaration field : recordType.getFields()) {
-                if (!isValidType(field.getType())) {
+            for (Map.Entry<String, Type> field : recordType.getFieldEntries()) {
+                if (!isValidType(field.getValue())) {
                     return false;
                 }
             }
@@ -1135,9 +1131,9 @@ public class SemanticAnalyzer {
         // For record types, validate all field types
         if (type instanceof RecordType) {
             RecordType recordType = (RecordType) type;
-            for (VariableDeclaration field : recordType.getFields()) {
-                if (!isValidType(field.getType())) {
-                    errors.add(new SemanticError("Invalid field type " + field.getType() + 
+            for (Map.Entry<String, Type> field : recordType.getFieldEntries()) {
+                if (!isValidType(field.getValue())) {
+                    errors.add(new SemanticError("Invalid field type " + field.getValue() + 
                         " in record " + typeName));
                     return;
                 }
@@ -1172,5 +1168,73 @@ public class SemanticAnalyzer {
 
         // Add array to symbol table
         symbolTable.declareVariable(decl.getName(), arrayType);
+    }
+
+    private void visitRoutineBody(RoutineDecl routine) {
+        // Enter new scope for routine parameters and body
+        symbolTable.enterScope();
+
+        // Add parameters to scope
+        if (routine.getParameters() != null) {
+            for (Parameter param : routine.getParameters()) {
+                if (!symbolTable.declare(param.getName(), param.getType())) {
+                    errors.add(new SemanticError("Parameter " + param.getName() + " is already defined"));
+                }
+            }
+        }
+
+        // Set expected return type for return statements
+        if (routine.getReturnType() != null) {
+            expectedReturnTypes.push(routine.getReturnType());
+        }
+
+        // Set routine context flag
+        insideRoutine = true;
+
+        // Visit each statement in the routine body
+        for (Statement stmt : routine.getBody()) {
+            visitStatement(stmt);
+        }
+
+        // Reset routine context flag
+        insideRoutine = false;
+
+        // Pop return type if we pushed one
+        if (routine.getReturnType() != null) {
+            expectedReturnTypes.pop();
+        }
+
+        // Exit routine scope
+        symbolTable.exitScope();
+    }
+
+    private void visitRoutineCallStatement(RoutineCallStatement stmt) {
+        RoutineDecl routine = symbolTable.getRoutine(stmt.getName());
+        if (routine == null) {
+            errors.add(new SemanticError("Undefined routine " + stmt.getName()));
+            return;
+        }
+
+        List<Parameter> params = routine.getParameters();
+        List<Expression> args = stmt.getArguments();
+        
+        if (params.size() != args.size()) {
+            errors.add(new SemanticError("Wrong number of arguments for routine " + stmt.getName() +
+                ". Expected " + params.size() + ", got " + args.size()));
+            return;
+        }
+
+        for (int i = 0; i < params.size(); i++) {
+            Type paramType = params.get(i).getType();
+            Type argType = getExpressionType(args.get(i));
+            if (!isTypeCompatible(paramType, argType)) {
+                errors.add(new SemanticError("Argument " + (i + 1) + " type mismatch in call to " + 
+                    stmt.getName() + ". Expected " + paramType + ", got " + argType));
+            }
+        }
+    }
+
+    public SymbolTable getSymbolTable() {
+        return symbolTable;
     }
 }

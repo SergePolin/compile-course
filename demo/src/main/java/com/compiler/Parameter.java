@@ -19,9 +19,6 @@ public class Parameter {
 
     @Override
     public String toString() {
-        return "Parameter(" +
-                "\n  name: " + name +
-                "\n  type: " + type +
-                "\n)";
+        return name + ": " + type;
     }
 }

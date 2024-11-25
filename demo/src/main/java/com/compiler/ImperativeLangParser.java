@@ -8,6 +8,8 @@ package com.compiler;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import com.compiler.*;
 import java_cup.runtime.XMLElement;
 
@@ -970,7 +972,7 @@ class CUP$ImperativeLangParser$actions {
           case 30: // type_spec ::= INTEGER 
             {
               Type RESULT =null;
-		 RESULT = new SimpleType("integer"); 
+		 RESULT = Type.INTEGER; 
               CUP$ImperativeLangParser$result = parser.getSymbolFactory().newSymbol("type_spec",10, ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), RESULT);
             }
           return CUP$ImperativeLangParser$result;
@@ -997,7 +999,7 @@ class CUP$ImperativeLangParser$actions {
           case 33: // type_spec ::= BOOLEAN 
             {
               Type RESULT =null;
-		 RESULT = new SimpleType("boolean"); 
+		 RESULT = Type.BOOLEAN; 
               CUP$ImperativeLangParser$result = parser.getSymbolFactory().newSymbol("type_spec",10, ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), RESULT);
             }
           return CUP$ImperativeLangParser$result;
@@ -1006,7 +1008,7 @@ class CUP$ImperativeLangParser$actions {
           case 34: // type_spec ::= STRING 
             {
               Type RESULT =null;
-		 RESULT = new SimpleType("string"); 
+		 RESULT = Type.STRING; 
               CUP$ImperativeLangParser$result = parser.getSymbolFactory().newSymbol("type_spec",10, ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), RESULT);
             }
           return CUP$ImperativeLangParser$result;
@@ -1104,7 +1106,10 @@ class CUP$ImperativeLangParser$actions {
 		int valueleft = ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()).left;
 		int valueright = ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()).right;
 		String value = (String)((java_cup.runtime.Symbol) CUP$ImperativeLangParser$stack.peek()).value;
-		 RESULT = new StringLiteral(value); 
+		 
+        System.out.println("[DEBUG] Parsing string literal: " + value);
+        RESULT = new StringLiteral(value); 
+    
               CUP$ImperativeLangParser$result = parser.getSymbolFactory().newSymbol("expression",5, ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), ((java_cup.runtime.Symbol)CUP$ImperativeLangParser$stack.peek()), RESULT);
             }
           return CUP$ImperativeLangParser$result;

@@ -10,6 +10,13 @@
     <name>imperativeLangParser</name>
     <url>http://maven.apache.org</url>
 
+    <repositories>
+        <repository>
+            <id>sonatype</id>
+            <url>https://oss.sonatype.org/content/repositories/public/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -26,6 +33,11 @@
             <groupId>com.github.vbmacher</groupId>
             <artifactId>java-cup</artifactId>
             <version>11b-20160615</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.mcgill.sable</groupId>
+            <artifactId>jasmin</artifactId>
+            <version>3.0.3</version>
         </dependency>
     </dependencies>
 
@@ -74,17 +86,42 @@
                             </arguments>
                         </configuration>
                     </execution>
-
-                    <!-- Main Program Execution -->
+                    
+                    <!-- Run Main Program -->
                     <execution>
-                        <id>run-main</id>
+                        <id>run-program</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>${exec.mainClass}</mainClass>
+                            <mainClass>com.compiler.Main</mainClass>
+                            <cleanupDaemonThreads>false</cleanupDaemonThreads>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.compiler.Main</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

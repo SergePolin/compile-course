@@ -7,6 +7,10 @@ public class IntegerLiteral extends Expression {
         this.value = value;
     }
 
+    public int getValue() {
+        return value;
+    }
+
     @Override
     public Object evaluate() {
         return value;
@@ -14,7 +18,6 @@ public class IntegerLiteral extends Expression {
 
     @Override
     public String toString() {
-        return "IntegerLiteral\n" +
-                "└── " + value;
+        return String.valueOf(value);
     }
 }

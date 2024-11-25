@@ -25,16 +25,16 @@ public class ForLoop extends Statement {
         return body;
     }
 
-    public String getIteratorName() {
-        return variable;
-    }
-
     public Expression getRangeStart() {
         return start;
     }
 
     public Expression getRangeEnd() {
         return end;
+    }
+
+    public Reverse getReverse() {
+        return reverse;
     }
 
     public void execute() {
