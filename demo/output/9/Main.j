@@ -10,58 +10,64 @@
 .end method
 
 .method public static main([Ljava/lang/String;)V
-    .limit stack 4
+    .limit stack 3
     .limit locals 2
+
+    ; Initialize array
     iconst_5
     newarray int
     putstatic Main/numbers [I
+
+    ; Assign values to array
     getstatic Main/numbers [I
-    iconst_1
-    iconst_1
-    isub
+    iconst_0
     bipush 10
     iastore
+
     getstatic Main/numbers [I
-    iconst_2
-    iconst_1
-    isub
+    iconst_1  
     bipush 20
     iastore
+
     getstatic Main/numbers [I
-    iconst_3
-    iconst_1
-    isub
+    iconst_2
     bipush 30
     iastore
+
     getstatic Main/numbers [I
-    iconst_4
-    iconst_1
-    isub
+    iconst_3
     bipush 40
     iastore
+
     getstatic Main/numbers [I
-    iconst_5
-    iconst_1
-    isub
+    iconst_4
     bipush 50
     iastore
-    iconst_1
-    istore 1
-L0:
-    iload 1
+
+    ; Initialize loop counter
+    iconst_0
+    istore_1
+
+    ; Start of loop
+loop:
+    iload_1
     iconst_5
-    if_icmpgt L1
+    if_icmpge end_loop
+
+    ; Print array element
     getstatic java/lang/System/out Ljava/io/PrintStream;
     getstatic Main/numbers [I
-    iload 1
-    iconst_1
-    isub
+    iload_1
     iaload
     invokevirtual java/io/PrintStream/println(I)V
 
-    iinc 1 1
-    goto L0
-L1:
+    ; Increment counter
+    iload_1
+    iconst_1
+    iadd
+    istore_1
+    goto loop
+
+end_loop:
     return
 .end method
-

@@ -33,6 +33,10 @@ public class ForLoop extends Statement {
         return end;
     }
 
+    public boolean isReverse() {
+        return reverse.isReverse();
+    }
+
     public Reverse getReverse() {
         return reverse;
     }
