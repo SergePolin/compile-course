@@ -21,12 +21,6 @@ public class RecordTypeDecl extends Statement {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("type ").append(name).append(" is record\n");
-        for (VarDecl field : fields) {
-            sb.append("    ").append(field).append("\n");
-        }
-        sb.append("end");
-        return sb.toString();
+        return "RecordTypeDecl(" + name + ")";
     }
 } 

@@ -24,121 +24,72 @@ public class JasminCodeGenerator {
     }
 
     public String generate(Program program) {
-    System.out.println("[DEBUG] Starting code generation");
-    localVariables.clear();
-    variableTypes.clear();
-    StringBuilder sb = new StringBuilder();
+        System.out.println("[DEBUG] Starting code generation");
+        localVariables.clear();
+        variableTypes.clear();
+        globalVariableTypes.clear();  // Clear global variables
+        StringBuilder sb = new StringBuilder();
 
-    // Generate record type classes first
-    for (Statement stmt : program.getStatements()) {
-        if (stmt instanceof RecordTypeDecl) {
-            generateRecordTypeClass((RecordTypeDecl) stmt);
-        }
-    }
-
-    // Class header
-    sb.append(".class public Main\n");
-    sb.append(".super java/lang/Object\n\n");
-
-    // Generate global variable fields
-    for (Statement stmt : program.getStatements()) {
-        if (stmt instanceof VarDecl || stmt instanceof ArrayDecl) {
-            generateGlobalVariableField(stmt, sb);
-        }
-    }
-
-    // Default constructor with proper limits
-    sb.append(".method public <init>()V\n");
-    sb.append("    aload_0\n");
-    sb.append("    invokespecial java/lang/Object/<init>()V\n");
-    sb.append("    return\n");
-    sb.append(".end method\n\n");
-
-    // Remove generateStaticInitializer call
-
-    // Generate all routines
-    for (Statement stmt : program.getStatements()) {
-        if (stmt instanceof RoutineDecl) {
-            generateRoutineDecl(program, (RoutineDecl) stmt, sb); // Pass 'program' here
-        }
-    }
-
-    String result = sb.toString();
-    System.out.println("[DEBUG] Generated Jasmin code:\n" + result);
-    return result;
-}
-
-
-
-
-private void generateGlobalVariableField(Statement stmt, StringBuilder sb) {
-    if (stmt instanceof VarDecl) {
-        VarDecl varDecl = (VarDecl) stmt;
-        String fieldDescriptor = getTypeDescriptor(varDecl.getType());
-        sb.append(".field private static ")
-          .append(varDecl.getName())
-          .append(" ")
-          .append(fieldDescriptor)
-          .append("\n\n");
-
-        // Store the type in globalVariableTypes
-        globalVariableTypes.put(varDecl.getName(), varDecl.getType());
-
-    } else if (stmt instanceof ArrayDecl) {
-        ArrayDecl arrayDecl = (ArrayDecl) stmt;
-        Type elementType = ((ArrayType) arrayDecl.getType()).getElementType();
-        String elementTypeDescriptor = getArrayFieldDescriptor(elementType);
-        String fieldDescriptor = "[" + elementTypeDescriptor;
-
-        sb.append(".field private static ")
-          .append(arrayDecl.getName())
-          .append(" ")
-          .append(fieldDescriptor)
-          .append("\n\n");
-
-        // Store the type in globalVariableTypes
-        globalVariableTypes.put(arrayDecl.getName(), arrayDecl.getType());
-    }
-}
-
-
-
-private void generateArrayInitialization(ArrayDecl arrayDecl, StringBuilder sb) {
-    Type elementType = ((ArrayType) arrayDecl.getType()).getElementType();
-    int size = ((ArrayType) arrayDecl.getType()).getSize();
-
-    // Initialize array
-    sb.append("    iconst_").append(size).append("\n");
-    sb.append("    newarray ").append(getArrayTypeDescriptor(elementType)).append("\n");
-    sb.append("    putstatic Main/").append(arrayDecl.getName())
-      .append(" ").append("[").append(getArrayFieldDescriptor(elementType)).append("\n");
-}
-
-
-    private void generateRoutineDecl(Program program, RoutineDecl routine, StringBuilder sb) {
-    // Clear local variables for new routine
-    localVariables.clear();
-    variableTypes.clear();
-    nextLocalVariableIndex = 1; // Start at 1 for methods (args array at index 0)
-
-    String methodName = routine.getName();
-    Type returnType = routine.getReturnType();
-    List<Parameter> params = routine.getParameters();
-
-    // Generate method signature
-    if (methodName.equals("main")) {
-        sb.append(".method public static main([Ljava/lang/String;)V\n");
-
-        // Stack and locals limits adjusted to match the working code
-        sb.append("    .limit stack 4\n");
-        sb.append("    .limit locals 2\n");
-
-        // Initialize arrays in main method
-         for (Statement stmt : program.getStatements()) {
-            if (stmt instanceof ArrayDecl) {
-                generateArrayInitialization((ArrayDecl) stmt, sb);
+        // Generate record type classes first
+        System.out.println("[DEBUG] Generating record type classes");
+        for (Statement stmt : program.getStatements()) {
+            System.out.println("[DEBUG] Processing statement: " + stmt.getClass().getSimpleName());
+            if (stmt instanceof TypeDecl) {  // Changed from RecordTypeDecl to TypeDecl
+                TypeDecl typeDecl = (TypeDecl) stmt;
+                if (typeDecl.getType() instanceof RecordType) {
+                    System.out.println("[DEBUG] Found record type declaration: " + typeDecl.getName());
+                    generateRecordTypeClass(typeDecl);
+                }
             }
         }
+
+        // Class header
+        sb.append(".class public Main\n");
+        sb.append(".super java/lang/Object\n\n");
+
+        // Generate global variable fields and store their types
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof VarDecl) {
+                VarDecl varDecl = (VarDecl) stmt;
+                String fieldDescriptor = getTypeDescriptor(varDecl.getType());
+                sb.append(".field private static ")
+                  .append(varDecl.getName())
+                  .append(" ")
+                  .append(fieldDescriptor)
+                  .append("\n\n");
+                
+                // Store the type in globalVariableTypes
+                globalVariableTypes.put(varDecl.getName(), varDecl.getType());
+                System.out.println("[DEBUG] Stored global variable: " + varDecl.getName() + 
+                                 " with type: " + varDecl.getType());
+            }
+            if (stmt instanceof ArrayDecl) {
+                generateGlobalArrayField((ArrayDecl) stmt, sb);
+            }
+        }
+
+        // Default constructor
+        sb.append(".method public <init>()V\n");
+        sb.append("    aload_0\n");
+        sb.append("    invokespecial java/lang/Object/<init>()V\n");
+        sb.append("    return\n");
+        sb.append(".end method\n\n");
+
+        // Generate all routine declarations first
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl) {
+                generateRoutineDecl(program, (RoutineDecl) stmt, sb);
+            }
+        }
+
+        // Generate main method
+        sb.append(".method public static main([Ljava/lang/String;)V\n");
+        sb.append("    .limit stack 4\n");
+        sb.append("    .limit locals 20\n\n");
+
+        // Reset local variable counter for main method
+        nextLocalVariableIndex = 1;  // Start at 1 because 0 is reserved for args array
+        localVariables.clear();
 
         // Initialize record instances
         for (Statement stmt : program.getStatements()) {
@@ -147,19 +98,119 @@ private void generateArrayInitialization(ArrayDecl arrayDecl, StringBuilder sb) 
                 if (varDecl.getType() instanceof SimpleType) {
                     String typeName = ((SimpleType) varDecl.getType()).getName();
                     if (symbolTable.getTypeDefinition(typeName) instanceof RecordType) {
-                        // Initialize record instance
                         sb.append("    new ").append(typeName).append("\n");
                         sb.append("    dup\n");
                         sb.append("    invokespecial ").append(typeName).append("/<init>()V\n");
                         sb.append("    putstatic Main/").append(varDecl.getName())
-                          .append(" L").append(typeName).append(";\n");
+                          .append(" L").append(typeName).append(";\n\n");
                     }
                 }
             }
+            if (stmt instanceof ArrayDecl) {
+                ArrayDecl arrayDecl = (ArrayDecl) stmt;
+                Type elementType = ((ArrayType) arrayDecl.getType()).getElementType();
+                int size = ((ArrayType) arrayDecl.getType()).getSize();
+                
+                // Create array
+                sb.append("    ; Initialize array ").append(arrayDecl.getName()).append("\n");
+                sb.append("    bipush ").append(size).append("\n");
+                sb.append("    newarray ");
+                if (elementType == Type.INTEGER) {
+                    sb.append("int\n");
+                } else if (elementType == Type.BOOLEAN) {
+                    sb.append("boolean\n");
+                }
+                sb.append("    putstatic Main/").append(arrayDecl.getName())
+                  .append(" [").append(getTypeDescriptor(elementType)).append("\n\n");
+            }
         }
-    } else {
-        // Existing code for other routines
+
+        // Generate statements
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl && ((RoutineDecl) stmt).getName().equals("main")) {
+                for (Statement bodyStmt : ((RoutineDecl) stmt).getBody()) {
+                    generateStatement(program, bodyStmt, sb);
+                }
+            }
+        }
+
+        sb.append("\n    return\n");
+        sb.append(".end method\n");
+
+        return sb.toString();
     }
+
+    private void generateGlobalVariableField(Statement stmt, StringBuilder sb) {
+        if (stmt instanceof VarDecl) {
+            VarDecl varDecl = (VarDecl) stmt;
+            String fieldDescriptor = getTypeDescriptor(varDecl.getType());
+            sb.append(".field private static ")
+              .append(varDecl.getName())
+              .append(" ")
+              .append(fieldDescriptor)
+              .append("\n\n");
+
+            // Store the type in globalVariableTypes
+            globalVariableTypes.put(varDecl.getName(), varDecl.getType());
+
+        } else if (stmt instanceof ArrayDecl) {
+            ArrayDecl arrayDecl = (ArrayDecl) stmt;
+            Type elementType = ((ArrayType) arrayDecl.getType()).getElementType();
+            String elementTypeDescriptor = getArrayFieldDescriptor(elementType);
+            String fieldDescriptor = "[" + elementTypeDescriptor;
+
+            sb.append(".field private static ")
+              .append(arrayDecl.getName())
+              .append(" ")
+              .append(fieldDescriptor)
+              .append("\n\n");
+
+            // Store the type in globalVariableTypes
+            globalVariableTypes.put(arrayDecl.getName(), arrayDecl.getType());
+        }
+    }
+
+    private void generateArrayInitialization(ArrayDecl arrayDecl, StringBuilder sb) {
+        Type elementType = ((ArrayType) arrayDecl.getType()).getElementType();
+        int size = ((ArrayType) arrayDecl.getType()).getSize();
+
+        // Initialize array
+        sb.append("    iconst_").append(size).append("\n");
+        sb.append("    newarray ").append(getArrayTypeDescriptor(elementType)).append("\n");
+        sb.append("    putstatic Main/").append(arrayDecl.getName())
+          .append(" ").append("[").append(getArrayFieldDescriptor(elementType)).append("\n");
+    }
+
+    private void generateRoutineDecl(Program program, RoutineDecl routine, StringBuilder sb) {
+        System.out.println("[DEBUG] Generating routine: " + routine.getName());
+    // Clear local variables for new routine
+    localVariables.clear();
+    variableTypes.clear();
+    nextLocalVariableIndex = 0; // Start at 0 for methods
+
+    String methodName = routine.getName();
+    Type returnType = routine.getReturnType();
+    List<Parameter> params = routine.getParameters();
+
+    // Generate method signature
+    sb.append(".method public static ").append(methodName).append("(");
+    for (Parameter param : params) {
+        sb.append(getTypeDescriptor(param.getType()));
+    }
+    sb.append(")").append(getTypeDescriptor(returnType)).append("\n");
+
+    // Calculate stack and locals limit (you may need to adjust these)
+    sb.append("    .limit stack 20\n");
+    sb.append("    .limit locals ").append(calculateLocalsLimit(routine)).append("\n\n");
+
+    // Map parameters to local variables
+    int paramIndex = 0;
+    for (Parameter param : params) {
+        localVariables.put(param.getName(), paramIndex);
+        variableTypes.put(param.getName(), param.getType());
+        paramIndex += getTypeSlotSize(param.getType());
+    }
+    nextLocalVariableIndex = paramIndex;
 
     // Generate routine body
     for (Statement stmt : routine.getBody()) {
@@ -167,7 +218,7 @@ private void generateArrayInitialization(ArrayDecl arrayDecl, StringBuilder sb) 
     }
 
     // Add return statement if needed
-    if (returnType == null || methodName.equals("main")) {
+    if (returnType == null || returnType == Type.VOID) {
         sb.append("    return\n");
     }
 
@@ -175,71 +226,72 @@ private void generateArrayInitialization(ArrayDecl arrayDecl, StringBuilder sb) 
 }
 
 
-
-private int getTypeSlotSize(Type type) {
-    if (type instanceof SimpleType && ((SimpleType) type).getName().equals("real")) {
-        return 2; // Doubles take two slots
-    } else {
-        return 1; // Most types take one slot
+    private int getTypeSlotSize(Type type) {
+        if (type instanceof SimpleType && ((SimpleType) type).getName().equals("real")) {
+            return 2; // Doubles take two slots
+        } else {
+            return 1; // Most types take one slot
+        }
     }
-}
-
-
 
     private String getTypeDescriptor(Type type) {
-    if (type == null || type == Type.VOID) {
-        return "V";
-    } else if (type == Type.INTEGER) {
-        return "I";
-    } else if (type == Type.BOOLEAN) {
-        return "Z";
-    } else if (type == Type.STRING) {
-        return "Ljava/lang/String;";
-    } else if (type instanceof SimpleType) {
-        String typeName = ((SimpleType) type).getName();
-        if (typeName.equals("real")) {
-            return "D";
+        if (type == null || type == Type.VOID) {
+            return "V";
+        } else if (type == Type.INTEGER) {
+            return "I";
+        } else if (type == Type.BOOLEAN) {
+            return "Z";
+        } else if (type == Type.STRING) {
+            return "Ljava/lang/String;";
+        } else if (type instanceof SimpleType) {
+            String typeName = ((SimpleType) type).getName();
+            if (typeName.equals("real")) {
+                return "D";
+            }
+            // For record types, ensure we return the proper class descriptor
+            Type typeDefinition = symbolTable.getTypeDefinition(typeName);
+            if (typeDefinition instanceof RecordType) {
+                return "L" + typeName + ";";
+            }
+            return "L" + typeName + ";";
         }
-        // For record types, return the class descriptor
-        return "L" + typeName + ";";
+        throw new RuntimeException("Unsupported type: " + type);
     }
-    throw new RuntimeException("Unsupported type: " + type);
-}
-
 
     private void generateRoutineCall(RoutineCall call, StringBuilder sb) {
-    System.out.println("[DEBUG] Generating routine call: " + call.getName());
+        System.out.println("[DEBUG] Generating routine call: " + call.getName());
 
-    // Retrieve the RoutineDecl from the symbol table
-    RoutineDecl routine = symbolTable.getRoutine(call.getName());
-    List<Parameter> params = routine.getParameters();
+        // Retrieve the RoutineDecl from the symbol table
+        RoutineDecl routine = symbolTable.getRoutine(call.getName());
+        List<Parameter> params = routine.getParameters();
 
-    // Generate code for arguments and handle implicit casting
-    List<Expression> arguments = call.getArguments();
-    for (int i = 0; i < arguments.size(); i++) {
-        Expression arg = arguments.get(i);
-        generateExpression(arg, sb);
+        // Generate code for arguments and handle implicit casting
+        List<Expression> arguments = call.getArguments();
+        for (int i = 0; i < arguments.size(); i++) {
+            Expression arg = arguments.get(i);
+            generateExpression(arg, sb);
 
-        // Get the parameter type from the RoutineDecl
-        Type paramType = params.get(i).getType();
-        Type argType = getExpressionType(arg);
-        generateImplicitCast(argType, paramType, sb);
+            // Get the parameter type from the RoutineDecl
+            Type paramType = params.get(i).getType();
+            Type argType = getExpressionType(arg);
+            generateImplicitCast(argType, paramType, sb);
+        }
+
+        // Generate invocation
+        sb.append("    invokestatic Main/").append(call.getName()).append("(");
+
+        // Add parameter descriptors
+        for (Parameter param : routine.getParameters()) {
+            sb.append(getTypeDescriptor(param.getType()));
+        }
+
+        // Add return type
+        sb.append(")").append(getTypeDescriptor(routine.getReturnType())).append("\n");
     }
-
-    // Generate invocation
-    sb.append("    invokestatic Main/").append(call.getName()).append("(");
-
-    // Add parameter descriptors
-    for (Parameter param : routine.getParameters()) {
-        sb.append(getTypeDescriptor(param.getType()));
-    }
-
-    // Add return type
-    sb.append(")").append(getTypeDescriptor(routine.getReturnType())).append("\n");
-}
-
 
     private void generateStatement(Program program, Statement stmt, StringBuilder sb) {
+        System.out.println("[DEBUG] Generating statement: " + stmt.getClass().getName());
+        
         if (stmt instanceof VarDecl) {
             generateVarDecl((VarDecl) stmt, sb);
         } else if (stmt instanceof ArrayDecl) {
@@ -248,6 +300,28 @@ private int getTypeSlotSize(Type type) {
             generatePrintStatement((PrintStatement) stmt, sb);
         } else if (stmt instanceof RoutineDecl) {
             generateRoutineDecl(program, (RoutineDecl) stmt, sb);
+        } else if (stmt instanceof RoutineCallStatement) {
+            System.out.println("[DEBUG] Found RoutineCallStatement");
+            try {
+                RoutineCallStatement routineCall = (RoutineCallStatement) stmt;
+                System.out.println("[DEBUG] Successfully cast to RoutineCallStatement");
+                System.out.println("[DEBUG] Routine name: " + routineCall.getName());
+                
+                // Create a RoutineCall from the RoutineCallStatement
+                RoutineCall call = new RoutineCall(routineCall.getName(), routineCall.getArguments());
+                generateRoutineCall(call, sb);
+                
+                RoutineDecl routine = symbolTable.getRoutine(routineCall.getName());
+                System.out.println("[DEBUG] Found routine declaration: " + (routine != null));
+                
+                if (routine != null && routine.getReturnType() != Type.VOID) {
+                    System.out.println("[DEBUG] Adding pop instruction for non-void return value");
+                    sb.append("    pop\n");
+                }
+            } catch (Exception e) {
+                System.err.println("[ERROR] Failed to process RoutineCallStatement: " + e.getMessage());
+                e.printStackTrace();
+            }
         } else if (stmt instanceof IfStatement) {
             generateIfStatement(program, (IfStatement) stmt, sb);
         } else if (stmt instanceof WhileStatement) {
@@ -261,37 +335,42 @@ private int getTypeSlotSize(Type type) {
         }
     }
 
-
     private void generateVarDecl(VarDecl decl, StringBuilder sb) {
-    System.out.println("[DEBUG] Generating variable declaration: " + decl.getName());
-    Type type = decl.getType();
-    int varIndex = nextIntVariable++;
-    
-    localVariables.put(decl.getName(), varIndex);
-    variableTypes.put(decl.getName(), type);
-
-    if (decl.getInitializer() != null) {
-        // Add comment for clarity
-        sb.append("    ; var ").append(decl.getName()).append(": ").append(type).append("\n");
-
-        if (decl.getInitializer() instanceof TypeCast) {
-            TypeCast cast = (TypeCast) decl.getInitializer();
-            generateExpression(cast.getExpression(), sb);
-            generateTypeCastAndStore(getExpressionType(cast.getExpression()), type, varIndex, sb);
+        System.out.println("[DEBUG] Generating variable declaration: " + decl.getName());
+        Type type = decl.getType();
+        int varIndex = nextLocalVariableIndex;
+        
+        // Increment the index by 2 for doubles, 1 for other types
+        if (type instanceof SimpleType && ((SimpleType)type).getName().equals("real")) {
+            nextLocalVariableIndex += 2;  // Doubles take up 2 slots
         } else {
-            generateExpression(decl.getInitializer(), sb);
-            generateStore(type, varIndex, sb);
+            nextLocalVariableIndex++;     // Other types take 1 slot
         }
-        sb.append("\n");
-    }
-}
+        
+        localVariables.put(decl.getName(), varIndex);
+        variableTypes.put(decl.getName(), type);
 
+        if (decl.getInitializer() != null) {
+            // Add comment for clarity
+            sb.append("    ; var ").append(decl.getName()).append(": ").append(type).append("\n");
+
+            if (decl.getInitializer() instanceof TypeCast) {
+                TypeCast cast = (TypeCast) decl.getInitializer();
+                generateExpression(cast.getExpression(), sb);
+                generateTypeCastAndStore(getExpressionType(cast.getExpression()), type, varIndex, sb);
+            } else {
+                generateExpression(decl.getInitializer(), sb);
+                generateStore(type, varIndex, sb);
+            }
+            sb.append("\n");
+        }
+    }
 
     private void generateStore(Type type, int varIndex, StringBuilder sb) {
         if (type == Type.INTEGER || type == Type.BOOLEAN) {
             sb.append("    istore ").append(varIndex).append("\n");
         } else if (type instanceof SimpleType && ((SimpleType)type).getName().equals("real")) {
-            sb.append("    fstore ").append(varIndex).append("\n");  // Use fstore instead of dstore
+            sb.append("    dstore ").append(varIndex).append("\n");  // Changed from fstore to dstore
         }
     }
 
@@ -299,34 +378,54 @@ private int getTypeSlotSize(Type type) {
         if (type == Type.INTEGER || type == Type.BOOLEAN) {
             sb.append("    iload ").append(varIndex).append("\n");
         } else if (type instanceof SimpleType && ((SimpleType)type).getName().equals("real")) {
-            sb.append("    fload ").append(varIndex).append("\n");  // Use fload instead of dload
+            sb.append("    dload ").append(varIndex).append("\n");  // Changed from fload to dload
         }
     }
 
     private void generatePrintStatement(PrintStatement stmt, StringBuilder sb) {
-    sb.append("    getstatic java/lang/System/out Ljava/io/PrintStream;\n");
-    
-    Expression expr = stmt.getExpression();
-    Type exprType = getExpressionType(expr);
-    generateExpression(expr, sb);
-    
-    if (exprType == Type.INTEGER) {
-        sb.append("    invokevirtual java/io/PrintStream/println(I)V\n");
-    } else if (exprType instanceof SimpleType &&
-            ((SimpleType) exprType).getName().equals("real")) {
-        sb.append("    invokevirtual java/io/PrintStream/println(D)V\n");  // Use D for double
-    } else if (exprType == Type.BOOLEAN) {
-        sb.append("    invokevirtual java/io/PrintStream/println(Z)V\n");
-    } else if (exprType == Type.STRING) {
-        sb.append("    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
-    } else {
-        throw new RuntimeException("Unsupported print expression type: " + exprType);
+        Expression expr = stmt.getExpression();
+        Type exprType = getExpressionType(expr);
+        
+        // First generate the PrintStream reference
+        sb.append("    getstatic java/lang/System/out Ljava/io/PrintStream;\n");
+        
+        // Generate the expression code to put the value on the stack
+        generateExpression(expr, sb);
+        
+        // Choose the appropriate println method based on the type
+        if (expr instanceof RecordAccess) {
+            RecordAccess access = (RecordAccess) expr;
+            String recordName = access.getRecord();
+            String fieldName = access.getField();
+            
+            // Get the field type from the record type
+            Type recordType = globalVariableTypes.get(recordName);
+            Type fieldType = ((RecordType)symbolTable.getTypeDefinition(
+                ((SimpleType)recordType).getName())).getFields().get(fieldName);
+            
+            // Use the correct descriptor based on the field type
+            if (fieldType == Type.INTEGER) {
+                sb.append("    invokevirtual java/io/PrintStream/println(I)V\n");
+            } else if (fieldType == Type.STRING) {
+                sb.append("    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+            } else if (fieldType == Type.BOOLEAN) {
+                sb.append("    invokevirtual java/io/PrintStream/println(Z)V\n");
+            }
+        } else {
+            // Handle non-record expressions
+            if (exprType == Type.INTEGER) {
+                sb.append("    invokevirtual java/io/PrintStream/println(I)V\n");
+            } else if (exprType == Type.STRING) {
+                sb.append("    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+            } else if (exprType == Type.BOOLEAN) {
+                sb.append("    invokevirtual java/io/PrintStream/println(Z)V\n");
+            } else if (exprType instanceof SimpleType && 
+                      ((SimpleType)exprType).getName().equals("real")) {
+                sb.append("    invokevirtual java/io/PrintStream/println(D)V\n");
+            }
+        }
+        sb.append("\n");
     }
-    sb.append("\n");
-}
-
-
-
 
     private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
         if (expr.getLeft() instanceof BinaryExpression && 
@@ -369,7 +468,15 @@ private int getTypeSlotSize(Type type) {
         if (expr instanceof TypeCast) {
             return ((TypeCast) expr).getTargetType();
         }
-        return Type.INTEGER;
+        if (expr instanceof RecordAccess) {
+            RecordAccess access = (RecordAccess) expr;
+            String recordName = access.getRecord();
+            String fieldName = access.getField();
+            Type recordType = globalVariableTypes.get(recordName);
+            return ((RecordType)symbolTable.getTypeDefinition(
+                ((SimpleType)recordType).getName())).getFields().get(fieldName);
+        }
+        return Type.INTEGER; // default
     }
 
     private void generateExpression(Expression expr, StringBuilder sb) {
@@ -389,7 +496,7 @@ private int getTypeSlotSize(Type type) {
             }
         } else if (expr instanceof RealLiteral) {
             double value = ((RealLiteral) expr).getValue();
-            sb.append("    ldc ").append(value).append("\n");  // Use ldc instead of ldc2_w
+            sb.append("    ldc2_w ").append(value).append("\n");  // Changed from ldc to ldc2_w for doubles
         } else if (expr instanceof BooleanLiteral) {
             sb.append("    iconst_").append(((BooleanLiteral) expr).getValue() ? "1" : "0").append("\n");
         } else if (expr instanceof StringLiteral) {
@@ -398,8 +505,18 @@ private int getTypeSlotSize(Type type) {
             String varName = ((VariableReference) expr).getName();
             Integer varIndex = localVariables.get(varName);
             Type varType = variableTypes.get(varName);
-            System.out.println("[DEBUG] Loading variable " + varName + " of type " + varType + " from index " + varIndex);
-            generateLoad(varType, varIndex, sb);
+            if (varIndex != null) {
+                generateLoad(varType, varIndex, sb);
+            } else {
+                // Check if it's a global variable
+                varType = globalVariableTypes.get(varName);
+                if (varType == null) {
+                    throw new RuntimeException("Undefined variable: " + varName);
+                }
+                // Load global variable
+                String fieldDescriptor = getTypeDescriptor(varType);
+                sb.append("    getstatic Main/").append(varName).append(" ").append(fieldDescriptor).append("\n");
+            }
         } else if (expr instanceof TypeCast) {
             generateTypeCast((TypeCast) expr, sb);
         } else if (expr instanceof BinaryExpression) {
@@ -407,43 +524,61 @@ private int getTypeSlotSize(Type type) {
         } else if (expr instanceof RoutineCall) {
             generateRoutineCall((RoutineCall) expr, sb);
         } else if (expr instanceof ArrayAccess) {
-    ArrayAccess access = (ArrayAccess) expr;
-    String arrayName = access.getArray();
-    Type arrayType = variableTypes.get(arrayName);
+            ArrayAccess access = (ArrayAccess) expr;
+            String arrayName = access.getArray();
+            Type arrayType = variableTypes.get(arrayName);
 
-    // Load array reference
-    if (arrayType == null) {
-        // Global array
-        Type arrayGlobalType = globalVariableTypes.get(arrayName);
-        if (arrayGlobalType == null) {
-            throw new RuntimeException("Undefined global variable: " + arrayName);
+            // Load array reference
+            if (arrayType == null) {
+                // Global array
+                Type arrayGlobalType = globalVariableTypes.get(arrayName);
+                if (arrayGlobalType == null) {
+                    throw new RuntimeException("Undefined global variable: " + arrayName);
+                }
+                Type elementType = ((ArrayType) arrayGlobalType).getElementType();
+                sb.append("    getstatic Main/").append(arrayName)
+                  .append(" [").append(getArrayFieldDescriptor(elementType)).append("\n");
+            } else {
+                // Local array
+                Integer arrayIndex = localVariables.get(arrayName);
+                sb.append("    aload ").append(arrayIndex).append("\n");
+            }
+
+            // Generate index expression
+            generateExpression(access.getIndex(), sb);
+            sb.append("    iconst_1\n");
+            sb.append("    isub\n"); // Adjust index for zero-based arrays
+
+            // Load array element
+            Type elementType = (arrayType != null)
+                    ? ((ArrayType) arrayType).getElementType()
+                    : ((ArrayType) globalVariableTypes.get(arrayName)).getElementType();
+            if (elementType == Type.INTEGER || elementType == Type.BOOLEAN) {
+                sb.append("    iaload\n");
+            } else if (elementType instanceof SimpleType && 
+                      ((SimpleType) elementType).getName().equals("real")) {
+                sb.append("    daload\n");
+            }
+        } else if (expr instanceof RecordAccess) {
+            // Update to use the existing RecordAccess class methods
+            RecordAccess access = (RecordAccess) expr;
+            String recordName = access.getRecord(); // Changed from getRecordName()
+            String fieldName = access.getField();   // Changed from getFieldName()
+            
+            // Load the record reference
+            sb.append("    getstatic Main/").append(recordName)
+              .append(" L").append(getRecordTypeName(recordName)).append(";\n");
+            
+            // Get the field type
+            Type recordType = globalVariableTypes.get(recordName);
+            Type fieldType = ((RecordType)symbolTable.getTypeDefinition(
+                ((SimpleType)recordType).getName())).getFields().get(fieldName);
+            
+            // Get the field value
+            sb.append("    getfield ").append(getRecordTypeName(recordName))
+              .append("/").append(fieldName)
+              .append(" ").append(getTypeDescriptor(fieldType)).append("\n");
         }
-        Type elementType = ((ArrayType) arrayGlobalType).getElementType();
-        sb.append("    getstatic Main/").append(arrayName)
-          .append(" [").append(getArrayFieldDescriptor(elementType)).append("\n");
-    } else {
-        // Local array
-        Integer arrayIndex = localVariables.get(arrayName);
-        sb.append("    aload ").append(arrayIndex).append("\n");
-    }
-
-    // Generate index expression
-    generateExpression(access.getIndex(), sb);
-    sb.append("    iconst_1\n");
-    sb.append("    isub\n"); // Adjust index for zero-based arrays
-
-    // Load array element
-    Type elementType = (arrayType != null)
-            ? ((ArrayType) arrayType).getElementType()
-            : ((ArrayType) globalVariableTypes.get(arrayName)).getElementType();
-    if (elementType == Type.INTEGER || elementType == Type.BOOLEAN) {
-        sb.append("    iaload\n");
-    } else if (elementType instanceof SimpleType && 
-              ((SimpleType) elementType).getName().equals("real")) {
-        sb.append("    daload\n");
-    }
-}
-
     }
 
     private void generateBinaryExpression(BinaryExpression expr, StringBuilder sb) {
@@ -536,12 +671,12 @@ private int getTypeSlotSize(Type type) {
     private void generateTypeCastAndStore(Type sourceType, Type targetType, int varIndex, StringBuilder sb) {
         if (sourceType == Type.INTEGER && targetType instanceof SimpleType && 
             ((SimpleType)targetType).getName().equals("real")) {
-            sb.append("    i2f\n");
-            sb.append("    fstore ").append(varIndex).append("\n");
+            sb.append("    i2d\n");  // Changed from i2f to i2d
+            sb.append("    dstore ").append(varIndex).append("\n");  // Changed from fstore to dstore
         } else if (sourceType instanceof SimpleType && 
                   ((SimpleType)sourceType).getName().equals("real") && 
                   targetType == Type.INTEGER) {
-            sb.append("    f2i\n");
+            sb.append("    d2i\n");  // Changed from f2i to d2i
             sb.append("    istore ").append(varIndex).append("\n");
         } else if (sourceType == Type.BOOLEAN && targetType == Type.INTEGER) {
             sb.append("    istore ").append(varIndex).append("\n");
@@ -557,8 +692,8 @@ private int getTypeSlotSize(Type type) {
         } else if (sourceType instanceof SimpleType && 
                   ((SimpleType)sourceType).getName().equals("real") && 
                   targetType == Type.BOOLEAN) {
-            sb.append("    fconst_0\n");
-            sb.append("    fcmpl\n");
+            sb.append("    dconst_0\n");  // Changed from fconst_0 to dconst_0
+            sb.append("    dcmpl\n");     // Changed from fcmpl to dcmpl
             String label = getNextLabel();
             sb.append("    ifeq ").append(label).append("\n");
             sb.append("    iconst_1\n");
@@ -610,75 +745,71 @@ private int getTypeSlotSize(Type type) {
     }
 
     private void generateReturnStatement(ReturnStatement stmt, StringBuilder sb) {
-    if (stmt.getExpression() != null) {
-        generateExpression(stmt.getExpression(), sb);
-        Type exprType = getExpressionType(stmt.getExpression());
-        
-        if (exprType == Type.INTEGER || exprType == Type.BOOLEAN) {
-            sb.append("    ireturn\n");
-        } else if (exprType instanceof SimpleType && 
-                  ((SimpleType)exprType).getName().equals("real")) {
-            sb.append("    dreturn\n");
+        if (stmt.getExpression() != null) {
+            generateExpression(stmt.getExpression(), sb);
+            Type exprType = getExpressionType(stmt.getExpression());
+            
+            if (exprType == Type.INTEGER || exprType == Type.BOOLEAN) {
+                sb.append("    ireturn\n");
+            } else if (exprType instanceof SimpleType && 
+                      ((SimpleType)exprType).getName().equals("real")) {
+                sb.append("    dreturn\n");
+            }
+        } else {
+            sb.append("    return\n");
         }
-    } else {
-        sb.append("    return\n");
     }
-}
-
 
     private String getNextLabel() {
         return "L" + (labelCounter++);
     }
 
     private void generateIfStatement(Program program, IfStatement stmt, StringBuilder sb) {
-    String elseLabel = getNextLabel();
-    String endLabel = getNextLabel();
-    
-    // Generate condition expression
-    generateExpression(stmt.getCondition(), sb);
-    
-    // For boolean conditions, the value is already 0 (false) or 1 (true)
-    sb.append("    ifeq ").append(elseLabel).append("\n");
-    
-    // Generate 'then' statements
-    for (Statement thenStmt : stmt.getThenStatements()) {
-        generateStatement(program, thenStmt, sb);
-    }
-    
-    // Only add 'goto endLabel' if the 'then' block doesn't end with a return
-    if (!endsWithReturn(stmt.getThenStatements())) {
-        sb.append("    goto ").append(endLabel).append("\n");
-    }
-    
-    // Else label
-    sb.append(elseLabel).append(":\n");
-    if (stmt.getElseStatements() != null) {
-        for (Statement elseStmt : stmt.getElseStatements()) {
-            generateStatement(program, elseStmt, sb);
+        String elseLabel = getNextLabel();
+        String endLabel = getNextLabel();
+        
+        // Generate condition expression
+        generateExpression(stmt.getCondition(), sb);
+        
+        // For boolean conditions, the value is already 0 (false) or 1 (true)
+        sb.append("    ifeq ").append(elseLabel).append("\n");
+        
+        // Generate 'then' statements
+        for (Statement thenStmt : stmt.getThenStatements()) {
+            generateStatement(program, thenStmt, sb);
+        }
+        
+        // Only add 'goto endLabel' if the 'then' block doesn't end with a return
+        if (!endsWithReturn(stmt.getThenStatements())) {
+            sb.append("    goto ").append(endLabel).append("\n");
+        }
+        
+        // Else label
+        sb.append(elseLabel).append(":\n");
+        if (stmt.getElseStatements() != null) {
+            for (Statement elseStmt : stmt.getElseStatements()) {
+                generateStatement(program, elseStmt, sb);
+            }
+        }
+        
+        // Only add 'endLabel' if neither branch ends with a return
+        if (!endsWithReturn(stmt.getThenStatements()) || !endsWithReturn(stmt.getElseStatements())) {
+            // End label
+            sb.append(endLabel).append(":\n");
         }
     }
-    
-    // Only add 'endLabel' if neither branch ends with a return
-    if (!endsWithReturn(stmt.getThenStatements()) || !endsWithReturn(stmt.getElseStatements())) {
-        // End label
-        sb.append(endLabel).append(":\n");
-    }
-}
 
-private boolean endsWithReturn(List<Statement> statements) {
-    if (statements == null || statements.isEmpty()) {
+    private boolean endsWithReturn(List<Statement> statements) {
+        if (statements == null || statements.isEmpty()) {
+            return false;
+        }
+        Statement lastStmt = statements.get(statements.size() - 1);
+        if (lastStmt instanceof ReturnStatement) {
+            return true;
+        }
+        // Optionally, check for nested blocks or other control flow statements
         return false;
     }
-    Statement lastStmt = statements.get(statements.size() - 1);
-    if (lastStmt instanceof ReturnStatement) {
-        return true;
-    }
-    // Optionally, check for nested blocks or other control flow statements
-    return false;
-}
-
-
-
 
     private void generateWhileStatement(Program program, WhileStatement stmt, StringBuilder sb) {
         String startLabel = getNextLabel();
@@ -711,12 +842,20 @@ private boolean endsWithReturn(List<Statement> statements) {
             String recordName = parts[0];
             String fieldName = parts[1];
             
+            Type recordType = globalVariableTypes.get(recordName);
+            if (!(recordType instanceof SimpleType)) {
+                throw new RuntimeException("Expected record type for " + recordName);
+            }
+            
+            RecordType actualRecordType = (RecordType) symbolTable.getTypeDefinition(((SimpleType) recordType).getName());
+            Type fieldType = actualRecordType.getFields().get(fieldName);
+            
             // Create a FieldAssignment and generate code for it
             FieldAssignment fieldAssign = new FieldAssignment(
                 recordName,
                 fieldName,
                 stmt.getValue(),
-                globalVariableTypes.get(recordName)
+                fieldType  // Pass the correct field type
             );
             generateFieldAssignment(fieldAssign, sb);
         } else if (stmt.getIndex() != null) {  // Array assignment
@@ -777,55 +916,52 @@ private boolean endsWithReturn(List<Statement> statements) {
         }
     }
 
-
-
     private void generateForLoop(Program program, ForLoop stmt, StringBuilder sb) {
-    String startLabel = getNextLabel();
-    String endLabel = getNextLabel();
+        String startLabel = getNextLabel();
+        String endLabel = getNextLabel();
 
-    String varName = stmt.getVariable();
-    int varIndex = nextLocalVariableIndex++;
-    localVariables.put(varName, varIndex);
-    variableTypes.put(varName, Type.INTEGER);
+        String varName = stmt.getVariable();
+        int varIndex = nextLocalVariableIndex++;
+        localVariables.put(varName, varIndex);
+        variableTypes.put(varName, Type.INTEGER);
 
-    // Initialize loop variable
-    generateExpression(stmt.getRangeStart(), sb);
-    sb.append("    istore ").append(varIndex).append("\n");
+        // Initialize loop variable
+        generateExpression(stmt.getRangeStart(), sb);
+        sb.append("    istore ").append(varIndex).append("\n");
 
-    // Start label
-    sb.append(startLabel).append(":\n");
+        // Start label
+        sb.append(startLabel).append(":\n");
 
-    // Load loop variable and end value
-    sb.append("    iload ").append(varIndex).append("\n");
-    generateExpression(stmt.getRangeEnd(), sb);
+        // Load loop variable and end value
+        sb.append("    iload ").append(varIndex).append("\n");
+        generateExpression(stmt.getRangeEnd(), sb);
 
-    if (stmt.isReverse()) {
-        // For reverse loop: if i < endValue, exit loop
-        sb.append("    if_icmplt ").append(endLabel).append("\n");
-    } else {
-        // For normal loop: if i > endValue, exit loop
-        sb.append("    if_icmpgt ").append(endLabel).append("\n");
+        if (stmt.isReverse()) {
+            // For reverse loop: if i < endValue, exit loop
+            sb.append("    if_icmplt ").append(endLabel).append("\n");
+        } else {
+            // For normal loop: if i > endValue, exit loop
+            sb.append("    if_icmpgt ").append(endLabel).append("\n");
+        }
+
+        // Loop body
+        for (Statement bodyStmt : stmt.getBody()) {
+            generateStatement(program, bodyStmt, sb);
+        }
+
+        // Increment or decrement loop variable
+        if (stmt.isReverse()) {
+            sb.append("    iinc ").append(varIndex).append(" -1\n");
+        } else {
+            sb.append("    iinc ").append(varIndex).append(" 1\n");
+        }
+
+        // Jump back to start
+        sb.append("    goto ").append(startLabel).append("\n");
+
+        // End label
+        sb.append(endLabel).append(":\n");
     }
-
-    // Loop body
-    for (Statement bodyStmt : stmt.getBody()) {
-        generateStatement(program, bodyStmt, sb);
-    }
-
-    // Increment or decrement loop variable
-    if (stmt.isReverse()) {
-        sb.append("    iinc ").append(varIndex).append(" -1\n");
-    } else {
-        sb.append("    iinc ").append(varIndex).append(" 1\n");
-    }
-
-    // Jump back to start
-    sb.append("    goto ").append(startLabel).append("\n");
-
-    // End label
-    sb.append(endLabel).append(":\n");
-}
-
 
     private void generateArrayDecl(ArrayDecl decl, StringBuilder sb) {
         System.out.println("[DEBUG] Generating array declaration: " + decl.getName());
@@ -846,91 +982,95 @@ private boolean endsWithReturn(List<Statement> statements) {
     }
 
     private String getArrayTypeDescriptor(Type elementType) {
-    if (elementType == Type.INTEGER) {
-        return "int";
-    } else if (elementType == Type.BOOLEAN) {
-        return "boolean";
-    } else if (elementType instanceof SimpleType && 
-              ((SimpleType) elementType).getName().equals("real")) {
-        return "double";
+        if (elementType == Type.INTEGER) {
+            return "int";
+        } else if (elementType == Type.BOOLEAN) {
+            return "boolean";
+        } else if (elementType instanceof SimpleType && 
+                  ((SimpleType) elementType).getName().equals("real")) {
+            return "double";
+        }
+        throw new RuntimeException("Unsupported array element type: " + elementType);
     }
-    throw new RuntimeException("Unsupported array element type: " + elementType);
-}
 
     private void generateGlobalArrayField(ArrayDecl decl, StringBuilder sb) {
-        String fieldDescriptor = getArrayFieldDescriptor(((ArrayType)decl.getType()).getElementType());
-        sb.append(".field private static ").append(decl.getName())
-          .append(" [").append(fieldDescriptor).append("\n");
+        Type elementType = ((ArrayType) decl.getType()).getElementType();
+        String fieldDescriptor = "[" + getTypeDescriptor(elementType);
+        sb.append(".field private static ")
+          .append(decl.getName())
+          .append(" ")
+          .append(fieldDescriptor)
+          .append("\n\n");
+        
+        // Store the type in globalVariableTypes
+        globalVariableTypes.put(decl.getName(), decl.getType());
     }
 
     private String getArrayFieldDescriptor(Type elementType) {
-    if (elementType == Type.INTEGER) {
-        return "I";
-    } else if (elementType == Type.BOOLEAN) {
-        return "Z";
-    } else if (elementType instanceof SimpleType && 
-              ((SimpleType) elementType).getName().equals("real")) {
-        return "D";
+        if (elementType == Type.INTEGER) {
+            return "I";
+        } else if (elementType == Type.BOOLEAN) {
+            return "Z";
+        } else if (elementType instanceof SimpleType && 
+                  ((SimpleType) elementType).getName().equals("real")) {
+            return "D";
+        }
+        throw new RuntimeException("Unsupported array element type: " + elementType);
     }
-    throw new RuntimeException("Unsupported array element type: " + elementType);
-}
-
 
     private void generateStaticInitializer(Program program, StringBuilder sb) {
-    boolean hasArrays = false;
-    for (Statement stmt : program.getStatements()) {
-        if (stmt instanceof ArrayDecl) {
-            hasArrays = true;
-            break;
+        boolean hasArrays = false;
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof ArrayDecl) {
+                hasArrays = true;
+                break;
+            }
         }
-    }
 
-    if (!hasArrays) {
-        return;
-    }
-
-    sb.append(".method static <clinit>()V\n");
-    sb.append("    .limit stack 10\n");
-    sb.append("    .limit locals 1\n\n");
-
-    // Initialize arrays
-    for (Statement stmt : program.getStatements()) {
-        if (stmt instanceof ArrayDecl) {
-            ArrayDecl arrayDecl = (ArrayDecl) stmt;
-            ArrayType arrayType = (ArrayType) arrayDecl.getType();
-            Type elementType = arrayType.getElementType();
-            int size = arrayType.getSize();
-
-            // Create array
-            sb.append("    bipush ").append(size).append("\n");
-            sb.append("    newarray ").append(getArrayTypeDescriptor(elementType)).append("\n");
-            sb.append("    putstatic Main/").append(arrayDecl.getName())
-              .append(" [").append(getArrayFieldDescriptor(elementType)).append("\n");
+        if (!hasArrays) {
+            return;
         }
+
+        sb.append(".method static <clinit>()V\n");
+        sb.append("    .limit stack 10\n");
+        sb.append("    .limit locals 1\n\n");
+
+        // Initialize arrays
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof ArrayDecl) {
+                ArrayDecl arrayDecl = (ArrayDecl) stmt;
+                ArrayType arrayType = (ArrayType) arrayDecl.getType();
+                Type elementType = arrayType.getElementType();
+                int size = arrayType.getSize();
+
+                // Create array
+                sb.append("    bipush ").append(size).append("\n");
+                sb.append("    newarray ").append(getArrayTypeDescriptor(elementType)).append("\n");
+                sb.append("    putstatic Main/").append(arrayDecl.getName())
+                  .append(" [").append(getArrayFieldDescriptor(elementType)).append("\n");
+            }
+        }
+
+        sb.append("    return\n");
+        sb.append(".end method\n\n");
     }
-
-    sb.append("    return\n");
-    sb.append(".end method\n\n");
-}
-
 
     private void generateImplicitCast(Type sourceType, Type targetType, StringBuilder sb) {
-    if (sourceType.equals(targetType)) {
-        // No casting needed
-        return;
+        if (sourceType.equals(targetType)) {
+            // No casting needed
+            return;
+        }
+        if (sourceType == Type.INTEGER && targetType instanceof SimpleType &&
+            ((SimpleType) targetType).getName().equals("real")) {
+            sb.append("    i2d\n"); // Convert int to double
+        } else if (sourceType instanceof SimpleType &&
+                   ((SimpleType) sourceType).getName().equals("real") &&
+                   targetType == Type.INTEGER) {
+            sb.append("    d2i\n"); // Convert double to int
+        } else {
+            throw new RuntimeException("Unsupported implicit cast from " + sourceType + " to " + targetType);
+        }
     }
-    if (sourceType == Type.INTEGER && targetType instanceof SimpleType &&
-        ((SimpleType) targetType).getName().equals("real")) {
-        sb.append("    i2d\n"); // Convert int to double
-    } else if (sourceType instanceof SimpleType &&
-               ((SimpleType) sourceType).getName().equals("real") &&
-               targetType == Type.INTEGER) {
-        sb.append("    d2i\n"); // Convert double to int
-    } else {
-        throw new RuntimeException("Unsupported implicit cast from " + sourceType + " to " + targetType);
-    }
-}
-
 
     // Helper method to calculate stack limit
     private int calculateStackLimit(RoutineDecl routine) {
@@ -989,19 +1129,24 @@ private boolean endsWithReturn(List<Statement> statements) {
         return Math.max(count, 5); // Minimum of 5 for safety
     }
 
-    private void generateRecordTypeClass(RecordTypeDecl recordType) {
+    private void generateRecordTypeClass(TypeDecl typeDecl) {
+        System.out.println("[DEBUG] Generating record type class: " + typeDecl.getName());
         StringBuilder sb = new StringBuilder();
         
         // Generate class header
-        sb.append(".class public ").append(recordType.getName()).append("\n");
+        sb.append(".class public ").append(typeDecl.getName()).append("\n");
         sb.append(".super java/lang/Object\n\n");
         
         // Generate fields
-        for (VarDecl field : recordType.getFields()) {
+        RecordType recordType = (RecordType) typeDecl.getType();
+        Map<String, Type> fields = recordType.getFields();
+        for (Map.Entry<String, Type> field : fields.entrySet()) {
+            String fieldDescriptor = getTypeDescriptor(field.getValue());
+            System.out.println("[DEBUG] Adding field: " + field.getKey() + " with descriptor: " + fieldDescriptor);
             sb.append(".field public ")
-              .append(field.getName())
+              .append(field.getKey())
               .append(" ")
-              .append(getTypeDescriptor(field.getType()))
+              .append(fieldDescriptor)
               .append("\n");
         }
         
@@ -1015,15 +1160,23 @@ private boolean endsWithReturn(List<Statement> statements) {
         sb.append(".end method\n");
 
         // Write to file in output directory
+        System.out.println("[DEBUG] Writing record type class file");
         try {
             File outputDir = new File("output");
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
+                System.out.println("[DEBUG] Created output directory: " + outputDir.getAbsolutePath());
             }
-            FileWriter writer = new FileWriter("output/" + recordType.getName() + ".j");
-            writer.write(sb.toString());
-            writer.close();
+            String filePath = outputDir + "/" + typeDecl.getName() + ".j";
+            System.out.println("[DEBUG] Writing to file: " + filePath);
+            try (FileWriter writer = new FileWriter(filePath)) {
+                writer.write(sb.toString());
+                System.out.println("[DEBUG] Successfully wrote record type class file");
+                System.out.println("[DEBUG] File contents:\n" + sb.toString());
+            }
         } catch (IOException e) {
+            System.err.println("[DEBUG] Failed to write record type class file: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to write record type class file", e);
         }
     }
@@ -1048,30 +1201,44 @@ private boolean endsWithReturn(List<Statement> statements) {
 
     private void generateFieldAssignment(FieldAssignment assign, StringBuilder sb) {
         // Load the record instance
+        String recordTypeName = getRecordTypeName(assign.getRecordName());
         sb.append("    getstatic Main/")
           .append(assign.getRecordName())
           .append(" L")
-          .append(getRecordTypeName(assign.getRecordName()))
+          .append(recordTypeName)
           .append(";\n");
           
         // Generate the value to be assigned
         generateExpression(assign.getValue(), sb);
         
+        // Ensure proper type conversion if needed
+        Type fieldType = assign.getType();
+        Type valueType = getExpressionType(assign.getValue());
+        generateImplicitCast(valueType, fieldType, sb);
+        
         // Set the field
         sb.append("    putfield ")
-          .append(getRecordTypeName(assign.getRecordName()))
+          .append(recordTypeName)
           .append("/")
           .append(assign.getFieldName())
           .append(" ")
-          .append(getTypeDescriptor(assign.getType()))
+          .append(getTypeDescriptor(fieldType))
           .append("\n");
     }
 
     private String getRecordTypeName(String varName) {
         Type type = globalVariableTypes.get(varName);
+        System.out.println("[DEBUG] Getting record type for: " + varName + ", type: " + type);
+        
+        if (type == null) {
+            throw new RuntimeException("Variable not found: " + varName);
+        }
+        
         if (type instanceof SimpleType) {
-            return ((SimpleType) type).getName();
+            String typeName = ((SimpleType) type).getName();
+            System.out.println("[DEBUG] Found record type name: " + typeName);
+            return typeName;
         }
         throw new RuntimeException("Variable " + varName + " is not a record type");
     }
-} 
+}

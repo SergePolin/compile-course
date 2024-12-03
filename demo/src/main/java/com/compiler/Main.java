@@ -57,12 +57,24 @@ public class Main {
                 writer.write(jasminCode);
             }
 
+            // print Main.j code
+            System.out.println("\nGenerated Jasmin code:");
+            System.out.println("----------------------------");
+            System.out.println(jasminCode);
+            System.out.println("----------------------------\n");
+
             // Compile all .j files in the output directory
             File[] jasminFiles = outputDir.listFiles((dir, name) -> name.endsWith(".j"));
             if (jasminFiles != null) {
+                // First compile record type files
                 for (File jasminFile : jasminFiles) {
-                    compileJasminFile(jasminFile.getPath(), outputPath);
+                    if (!jasminFile.getName().equals("Main.j")) {
+                        compileJasminFile(jasminFile.getPath(), outputPath);
+                    }
                 }
+                
+                // Then compile Main.j
+                compileJasminFile(mainJasminFile, outputPath);
             }
 
             // Run the compiled program
@@ -70,7 +82,7 @@ public class Main {
             System.out.println("----------------------------");
             
             ProcessBuilder pb = new ProcessBuilder("java", "-cp", outputPath, "Main");
-            pb.inheritIO(); // Redirect program output to console
+            pb.inheritIO();
             Process process = pb.start();
             int exitCode = process.waitFor();
             
