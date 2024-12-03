@@ -11,11 +11,14 @@ routine main() is
 
     if op = "+" then
         result := a + b;
-    else if op = "-" then
+    end;
+    if op = "-" then
         result := a - b;
-    else if op = "*" then
+    end;
+    if op = "*" then
         result := a * b;
-    else if op = "/" then
+    end;
+    if op = "/" then
         result := a / b;
     end;
 

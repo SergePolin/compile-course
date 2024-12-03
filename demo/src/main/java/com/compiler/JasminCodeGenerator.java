@@ -208,16 +208,16 @@ public class JasminCodeGenerator {
     variableTypes.clear();
     nextLocalVariableIndex = 0; // Start at 0 for methods
 
-    String methodName = routine.getName();
-    Type returnType = routine.getReturnType();
-    List<Parameter> params = routine.getParameters();
+        String methodName = routine.getName();
+        Type returnType = routine.getReturnType();
+        List<Parameter> params = routine.getParameters();
 
-    // Generate method signature
-    sb.append(".method public static ").append(methodName).append("(");
-    for (Parameter param : params) {
-        sb.append(getTypeDescriptor(param.getType()));
-    }
-    sb.append(")").append(getTypeDescriptor(returnType)).append("\n");
+        // Generate method signature
+        sb.append(".method public static ").append(methodName).append("(");
+        for (Parameter param : params) {
+            sb.append(getTypeDescriptor(param.getType()));
+        }
+        sb.append(")").append(getTypeDescriptor(returnType)).append("\n");
 
     // Calculate stack and locals limit (you may need to adjust these)
     sb.append("    .limit stack 20\n");
@@ -232,15 +232,20 @@ public class JasminCodeGenerator {
     }
     nextLocalVariableIndex = paramIndex;
 
-    // Generate routine body
-    for (Statement stmt : routine.getBody()) {
-        generateStatement(program, stmt, sb);
-    }
+        // Generate routine body
+        for (Statement stmt : routine.getBody()) {
+            generateStatement(program, stmt, sb);
+        }
 
-    // Add return statement if needed
-    if (returnType == null || returnType == Type.VOID) {
-        sb.append("    return\n");
-    }
+        // Add default return if needed
+        if (!endsWithReturn(routine.getBody())) {
+            if (returnType == null || returnType == Type.VOID) {
+                sb.append("    return\n");
+            } else if (returnType == Type.INTEGER) {
+                sb.append("    iconst_0\n");
+                sb.append("    ireturn\n");
+            }
+        }
 
     sb.append(".end method\n\n");
 }
@@ -371,6 +376,15 @@ public class JasminCodeGenerator {
         
         localVariables.put(decl.getName(), varIndex);
         variableTypes.put(decl.getName(), type);
+
+        // Initialize variables to 0/null
+        if (type == Type.INTEGER) {
+            sb.append("    iconst_0\n");
+            sb.append("    istore ").append(varIndex).append("\n");
+        } else if (type == Type.STRING) {
+            sb.append("    aconst_null\n");
+            sb.append("    astore ").append(varIndex).append("\n");
+        }
 
         if (decl.getInitializer() != null) {
             // Add comment for clarity
@@ -618,9 +632,22 @@ public class JasminCodeGenerator {
         } else if (expr instanceof BinaryExpression) {
             BinaryExpression binary = (BinaryExpression) expr;
             String op = binary.getOperator();
-            
             if (op.equals("and") || op.equals("or") || op.equals("xor")) {
-                generateLogicalOperation(binary, sb);
+                generateLogicalOperation(binary, sb);   
+            }
+            // Special handling for string equality comparison
+            else if (op.equals("=") && (getExpressionType(binary.getLeft()) == Type.STRING || 
+                                  getExpressionType(binary.getRight()) == Type.STRING)) {
+                generateExpression(binary.getLeft(), sb);
+                generateExpression(binary.getRight(), sb);
+                String label = getNextLabel();
+                sb.append("    invokevirtual java/lang/String/equals(Ljava/lang/Object;)Z\n");
+                sb.append("    ifeq ").append(label).append("_false\n");
+                sb.append("    iconst_1\n");
+                sb.append("    goto ").append(label).append("_end\n");
+                sb.append(label).append("_false:\n");
+                sb.append("    iconst_0\n");
+                sb.append(label).append("_end:\n");
             } else if (op.equals("=")) {
                 // Special handling for equality comparison
                 generateExpression(binary.getLeft(), sb);
@@ -760,7 +787,7 @@ public class JasminCodeGenerator {
                 sb.append("    dstore ").append(varIndex).append("\n");
             }
         } else if (varType == Type.STRING) {
-            sb.append("    invokevirtual java/util/Scanner/nextLine()Ljava/lang/String;\n");
+            sb.append("    invokevirtual java/util/Scanner/next()Ljava/lang/String;\n");
             if (isGlobal) {
                 sb.append("    putstatic Main/").append(varName).append(" Ljava/lang/String;\n");
             } else {
@@ -905,6 +932,8 @@ public class JasminCodeGenerator {
             } else if (exprType instanceof SimpleType && 
                       ((SimpleType)exprType).getName().equals("real")) {
                 sb.append("    dreturn\n");
+            } else if (exprType == Type.STRING) {
+                sb.append("    areturn\n");
             }
         } else {
             sb.append("    return\n");
@@ -920,7 +949,20 @@ public class JasminCodeGenerator {
         String endLabel = getNextLabel();
         
         // Generate condition expression
-        generateExpression(stmt.getCondition(), sb);
+        if (stmt.getCondition() instanceof BinaryExpression) {
+            BinaryExpression condition = (BinaryExpression) stmt.getCondition();
+            if (condition.getOperator().equals("=") && 
+                getExpressionType(condition.getLeft()) == Type.STRING) {
+                // Special handling for string equality
+                generateExpression(condition.getLeft(), sb);
+                generateExpression(condition.getRight(), sb);
+                sb.append("    invokevirtual java/lang/String/equals(Ljava/lang/Object;)Z\n");
+            } else {
+                generateExpression(stmt.getCondition(), sb);
+            }
+        } else {
+            generateExpression(stmt.getCondition(), sb);
+        }
         
         // For boolean conditions, the value is already 0 (false) or 1 (true)
         sb.append("    ifeq ").append(elseLabel).append("\n");
@@ -930,22 +972,23 @@ public class JasminCodeGenerator {
             generateStatement(program, thenStmt, sb);
         }
         
-        // Only add 'goto endLabel' if the 'then' block doesn't end with a return
+        // Only add goto if there's no return statement
         if (!endsWithReturn(stmt.getThenStatements())) {
             sb.append("    goto ").append(endLabel).append("\n");
         }
         
-        // Else label
         sb.append(elseLabel).append(":\n");
+        
+        // Generate else statements if they exist
         if (stmt.getElseStatements() != null) {
             for (Statement elseStmt : stmt.getElseStatements()) {
                 generateStatement(program, elseStmt, sb);
             }
         }
         
-        // Only add 'endLabel' if neither branch ends with a return
-        if (!endsWithReturn(stmt.getThenStatements()) || !endsWithReturn(stmt.getElseStatements())) {
-            // End label
+        // Only add end label if at least one branch doesn't end with return
+        if (!endsWithReturn(stmt.getThenStatements()) || 
+            (stmt.getElseStatements() != null && !endsWithReturn(stmt.getElseStatements()))) {
             sb.append(endLabel).append(":\n");
         }
     }

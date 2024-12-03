@@ -23,7 +23,7 @@
     invokevirtual java/util/Scanner/nextInt()I
     istore_1
     
-    ; Read second integer (b) 
+    ; Read second integer (b)
     aload 4
     invokevirtual java/util/Scanner/nextInt()I
     istore_2
@@ -41,15 +41,17 @@
     iload_1
     iload_2
     iadd
+    istore 4
     goto L5
 L1:
     aload_3
-    ldc "-" 
+    ldc "-"
     invokevirtual java/lang/String/equals(Ljava/lang/Object;)Z
     ifeq L2
     iload_1
     iload_2
     isub
+    istore 4
     goto L5
 L2:
     aload_3
@@ -59,6 +61,7 @@ L2:
     iload_1
     iload_2
     imul
+    istore 4
     goto L5
 L3:
     aload_3
@@ -68,13 +71,12 @@ L3:
     iload_1
     iload_2
     idiv
+    istore 4
     goto L5
 L4:
     iconst_0
-L5:
-    ; Store result
     istore 4
-    
+L5:
     ; Print result
     getstatic java/lang/System/out Ljava/io/PrintStream;
     iload 4
