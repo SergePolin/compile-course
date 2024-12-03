@@ -1,3 +1,8 @@
+// case: string
 routine main() is
-    print("Hello, World!");
+    var firstName: string is "John";
+    var lastName: string is "Doe";
+    var fullName: string is firstName + " " + lastName;
+
+    print(fullName);  // Should print "John Doe"
 end;

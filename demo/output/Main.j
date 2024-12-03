@@ -11,8 +11,18 @@
     .limit stack 20
     .limit locals 5
 
+    ; var firstName: string
+    ldc "John"
+
+    ; var lastName: string
+    ldc "Doe"
+
+    ; var fullName: string
+    ldc " "
+    iadd
+    iadd
+
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    ldc "Hello, World!"
     invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 
     return
@@ -22,8 +32,18 @@
     .limit stack 4
     .limit locals 20
 
+    ; var firstName: string
+    ldc "John"
+
+    ; var lastName: string
+    ldc "Doe"
+
+    ; var fullName: string
+    ldc " "
+    iadd
+    iadd
+
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    ldc "Hello, World!"
     invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 
 

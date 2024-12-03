@@ -519,8 +519,6 @@ public class JasminCodeGenerator {
             }
         } else if (expr instanceof TypeCast) {
             generateTypeCast((TypeCast) expr, sb);
-        } else if (expr instanceof BinaryExpression) {
-            generateBinaryExpression((BinaryExpression) expr, sb);
         } else if (expr instanceof RoutineCall) {
             generateRoutineCall((RoutineCall) expr, sb);
         } else if (expr instanceof ArrayAccess) {
@@ -578,93 +576,143 @@ public class JasminCodeGenerator {
             sb.append("    getfield ").append(getRecordTypeName(recordName))
               .append("/").append(fieldName)
               .append(" ").append(getTypeDescriptor(fieldType)).append("\n");
+        } else if (expr instanceof UnaryExpression) {
+            UnaryExpression unary = (UnaryExpression) expr;
+            if (unary.getOperator().equals("not")) {
+                generateExpression(unary.getExpression(), sb);
+                // Negate the boolean value
+                String label = getNextLabel();
+                sb.append("    ifeq ").append(label).append("_true\n");
+                sb.append("    iconst_0\n");
+                sb.append("    goto ").append(label).append("_end\n");
+                sb.append(label).append("_true:\n");
+                sb.append("    iconst_1\n");
+                sb.append(label).append("_end:\n");
+            }
+        } else if (expr instanceof BinaryExpression) {
+            BinaryExpression binary = (BinaryExpression) expr;
+            String op = binary.getOperator();
+            
+            if (op.equals("and") || op.equals("or") || op.equals("xor")) {
+                generateLogicalOperation(binary, sb);
+            } else if (op.equals("=")) {
+                // Special handling for equality comparison
+                generateExpression(binary.getLeft(), sb);
+                generateExpression(binary.getRight(), sb);
+                String label = getNextLabel();
+                sb.append("    if_icmpeq ").append(label).append("_true\n");
+                sb.append("    iconst_0\n");
+                sb.append("    goto ").append(label).append("_end\n");
+                sb.append(label).append("_true:\n");
+                sb.append("    iconst_1\n");
+                sb.append(label).append("_end:\n");
+            } else {
+                // Generate code for left and right operands
+                generateExpression(binary.getLeft(), sb);
+                generateExpression(binary.getRight(), sb);
+
+                // Generate the operation
+                switch (op) {
+                    case "+": sb.append("    iadd\n"); break;
+                    case "-": sb.append("    isub\n"); break;
+                    case "*": sb.append("    imul\n"); break;
+                    case "/": sb.append("    idiv\n"); break;
+                    case "%": sb.append("    irem\n"); break;
+                    case ">": {
+                        String label = getNextLabel();
+                        sb.append("    if_icmpgt ").append(label).append("_true\n");
+                        sb.append("    iconst_0\n");
+                        sb.append("    goto ").append(label).append("_end\n");
+                        sb.append(label).append("_true:\n");
+                        sb.append("    iconst_1\n");
+                        sb.append(label).append("_end:\n");
+                        break;
+                    }
+                    case ">=": {
+                        String label = getNextLabel();
+                        sb.append("    if_icmpge ").append(label).append("_true\n");
+                        sb.append("    iconst_0\n");
+                        sb.append("    goto ").append(label).append("_end\n");
+                        sb.append(label).append("_true:\n");
+                        sb.append("    iconst_1\n");
+                        sb.append(label).append("_end:\n");
+                        break;
+                    }
+                    case "<": {
+                        String label = getNextLabel();
+                        sb.append("    if_icmplt ").append(label).append("_true\n");
+                        sb.append("    iconst_0\n");
+                        sb.append("    goto ").append(label).append("_end\n");
+                        sb.append(label).append("_true:\n");
+                        sb.append("    iconst_1\n");
+                        sb.append(label).append("_end:\n");
+                        break;
+                    }
+                    case "<=": {
+                        String label = getNextLabel();
+                        sb.append("    if_icmple ").append(label).append("_true\n");
+                        sb.append("    iconst_0\n");
+                        sb.append("    goto ").append(label).append("_end\n");
+                        sb.append(label).append("_true:\n");
+                        sb.append("    iconst_1\n");
+                        sb.append(label).append("_end:\n");
+                        break;
+                    }
+                    case "!=": {
+                        String label = getNextLabel();
+                        sb.append("    if_icmpne ").append(label).append("_true\n");
+                        sb.append("    iconst_0\n");
+                        sb.append("    goto ").append(label).append("_end\n");
+                        sb.append(label).append("_true:\n");
+                        sb.append("    iconst_1\n");
+                        sb.append(label).append("_end:\n");
+                        break;
+                    }
+                    default:
+                        throw new RuntimeException("Unknown operator: " + op);
+                }
+            }
         }
     }
 
-    private void generateBinaryExpression(BinaryExpression expr, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating binary expression: " + expr.getOperator());
+    private void generateLogicalOperation(BinaryExpression expr, StringBuilder sb) {
+        String op = expr.getOperator();
         
-        if (expr.getOperator().equals("=")) {
-            // Special handling for equality comparison
+        if (op.equals("and")) {
+            // Generate short-circuit AND
+            String endLabel = getNextLabel();
+            String falseLabel = getNextLabel();
+            
+            generateExpression(expr.getLeft(), sb);
+            sb.append("    ifeq ").append(falseLabel).append("\n");
+            generateExpression(expr.getRight(), sb);
+            sb.append("    ifeq ").append(falseLabel).append("\n");
+            sb.append("    iconst_1\n");
+            sb.append("    goto ").append(endLabel).append("\n");
+            sb.append(falseLabel).append(":\n");
+            sb.append("    iconst_0\n");
+            sb.append(endLabel).append(":\n");
+        } 
+        else if (op.equals("or")) {
+            // Generate short-circuit OR
+            String endLabel = getNextLabel();
+            String trueLabel = getNextLabel();
+            
+            generateExpression(expr.getLeft(), sb);
+            sb.append("    ifne ").append(trueLabel).append("\n");
+            generateExpression(expr.getRight(), sb);
+            sb.append("    ifne ").append(trueLabel).append("\n");
+            sb.append("    iconst_0\n");
+            sb.append("    goto ").append(endLabel).append("\n");
+            sb.append(trueLabel).append(":\n");
+            sb.append("    iconst_1\n");
+            sb.append(endLabel).append(":\n");
+        }
+        else if (op.equals("xor")) {
+            // Generate XOR
             generateExpression(expr.getLeft(), sb);
             generateExpression(expr.getRight(), sb);
-            String label = getNextLabel();
-            // For equality comparison, result is already on stack (1 for true, 0 for false)
-            sb.append("    if_icmpeq ").append(label).append("_true\n");
-            sb.append("    iconst_0\n");
-            sb.append("    goto ").append(label).append("_end\n");
-            sb.append(label).append("_true:\n");
-            sb.append("    iconst_1\n");
-            sb.append(label).append("_end:\n");
-            return;
-        }
-        
-        // Generate code for left and right operands
-        generateExpression(expr.getLeft(), sb);
-        generateExpression(expr.getRight(), sb);
-
-        // Generate the operation
-        switch (expr.getOperator()) {
-            case "+": sb.append("    iadd\n"); break;
-            case "-": sb.append("    isub\n"); break;
-            case "*": sb.append("    imul\n"); break;
-            case "/": sb.append("    idiv\n"); break;
-            case "%": sb.append("    irem\n"); break;
-            case "and": sb.append("    iand\n"); break;
-            case "or": sb.append("    ior\n"); break;
-            case "xor": sb.append("    ixor\n"); break;
-            case ">": {
-                String label = getNextLabel();
-                sb.append("    if_icmpgt ").append(label).append("_true\n");
-                sb.append("    iconst_0\n");
-                sb.append("    goto ").append(label).append("_end\n");
-                sb.append(label).append("_true:\n");
-                sb.append("    iconst_1\n");
-                sb.append(label).append("_end:\n");
-                break;
-            }
-            case ">=": {
-                String label = getNextLabel();
-                sb.append("    if_icmpge ").append(label).append("_true\n");
-                sb.append("    iconst_0\n");
-                sb.append("    goto ").append(label).append("_end\n");
-                sb.append(label).append("_true:\n");
-                sb.append("    iconst_1\n");
-                sb.append(label).append("_end:\n");
-                break;
-            }
-            case "<": {
-                String label = getNextLabel();
-                sb.append("    if_icmplt ").append(label).append("_true\n");
-                sb.append("    iconst_0\n");
-                sb.append("    goto ").append(label).append("_end\n");
-                sb.append(label).append("_true:\n");
-                sb.append("    iconst_1\n");
-                sb.append(label).append("_end:\n");
-                break;
-            }
-            case "<=": {
-                String label = getNextLabel();
-                sb.append("    if_icmple ").append(label).append("_true\n");
-                sb.append("    iconst_0\n");
-                sb.append("    goto ").append(label).append("_end\n");
-                sb.append(label).append("_true:\n");
-                sb.append("    iconst_1\n");
-                sb.append(label).append("_end:\n");
-                break;
-            }
-            case "!=": {
-                String label = getNextLabel();
-                sb.append("    if_icmpne ").append(label).append("_true\n");
-                sb.append("    iconst_0\n");
-                sb.append("    goto ").append(label).append("_end\n");
-                sb.append(label).append("_true:\n");
-                sb.append("    iconst_1\n");
-                sb.append(label).append("_end:\n");
-                break;
-            }
-            default:
-                throw new RuntimeException("Unknown operator: " + expr.getOperator());
+            sb.append("    ixor\n");
         }
     }
 
