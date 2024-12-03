@@ -13,10 +13,21 @@
     .limit stack 20
     .limit locals 5
 
+    iconst_0
+    istore 0
+    iconst_5
+    istore 1
+L0:
+    iload 1
+    iconst_1
+    if_icmplt L1
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    ldc "Hello, World!"
-    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+    iload 1
+    invokevirtual java/io/PrintStream/println(I)V
 
+    iinc 1 -1
+    goto L0
+L1:
     return
 .end method
 
@@ -24,10 +35,21 @@
     .limit stack 6
     .limit locals 20
 
+    iconst_0
+    istore 1
+    iconst_5
+    istore 2
+L2:
+    iload 2
+    iconst_1
+    if_icmplt L3
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    ldc "Hello, World!"
-    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+    iload 2
+    invokevirtual java/io/PrintStream/println(I)V
 
+    iinc 2 -1
+    goto L2
+L3:
 
     return
 .end method

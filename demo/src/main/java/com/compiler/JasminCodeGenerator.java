@@ -382,7 +382,7 @@ public class JasminCodeGenerator {
             sb.append("    iconst_0\n");
             sb.append("    istore ").append(varIndex).append("\n");
         } else if (type == Type.STRING) {
-            sb.append("    aconst_null\n");
+            sb.append("    ldc \"\"\n");  // Initialize string to empty string instead of null
             sb.append("    astore ").append(varIndex).append("\n");
         }
 
@@ -394,6 +394,14 @@ public class JasminCodeGenerator {
                 TypeCast cast = (TypeCast) decl.getInitializer();
                 generateExpression(cast.getExpression(), sb);
                 generateTypeCastAndStore(getExpressionType(cast.getExpression()), type, varIndex, sb);
+            } else if (type == Type.STRING && decl.getInitializer() instanceof BinaryExpression) {
+                // Handle string concatenation in initialization
+                sb.append("    new java/lang/StringBuilder\n");
+                sb.append("    dup\n");
+                sb.append("    invokespecial java/lang/StringBuilder/<init>()V\n");
+                generateStringConcatenation((BinaryExpression) decl.getInitializer(), sb);
+                sb.append("    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;\n");
+                generateStore(type, varIndex, sb);
             } else {
                 generateExpression(decl.getInitializer(), sb);
                 generateStore(type, varIndex, sb);
@@ -424,16 +432,27 @@ public class JasminCodeGenerator {
 
     private void generatePrintStatement(PrintStatement stmt, StringBuilder sb) {
         Expression expr = stmt.getExpression();
-        Type exprType = getExpressionType(expr);
         
         // First generate the PrintStream reference
         sb.append("    getstatic java/lang/System/out Ljava/io/PrintStream;\n");
         
-        // Generate the expression code to put the value on the stack
-        generateExpression(expr, sb);
-        
-        // Choose the appropriate println method based on the type
-        if (expr instanceof RecordAccess) {
+        // For string concatenation, we need to use StringBuilder
+        if (expr instanceof BinaryExpression && ((BinaryExpression) expr).getOperator().equals("+")) {
+            // Create new StringBuilder
+            sb.append("    new java/lang/StringBuilder\n");
+            sb.append("    dup\n");
+            sb.append("    invokespecial java/lang/StringBuilder/<init>()V\n");
+            
+            // Generate the concatenation
+            generateStringConcatenation((BinaryExpression) expr, sb);
+            
+            // Convert StringBuilder to String
+            sb.append("    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;\n");
+            
+            // Print the string
+            sb.append("    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+        } else if (expr instanceof RecordAccess) {
+            // Handle record access
             RecordAccess access = (RecordAccess) expr;
             String recordName = access.getRecord();
             String fieldName = access.getField();
@@ -442,6 +461,9 @@ public class JasminCodeGenerator {
             Type recordType = globalVariableTypes.get(recordName);
             Type fieldType = ((RecordType)symbolTable.getTypeDefinition(
                 ((SimpleType)recordType).getName())).getFields().get(fieldName);
+            
+            // Generate the expression code
+            generateExpression(expr, sb);
             
             // Use the correct descriptor based on the field type
             if (fieldType == Type.INTEGER) {
@@ -452,7 +474,10 @@ public class JasminCodeGenerator {
                 sb.append("    invokevirtual java/io/PrintStream/println(Z)V\n");
             }
         } else {
-            // Handle non-record expressions
+            // Handle non-concatenation expressions
+            generateExpression(expr, sb);
+            Type exprType = getExpressionType(expr);
+            
             if (exprType == Type.INTEGER) {
                 sb.append("    invokevirtual java/io/PrintStream/println(I)V\n");
             } else if (exprType == Type.STRING) {
@@ -467,22 +492,22 @@ public class JasminCodeGenerator {
         sb.append("\n");
     }
 
-    // private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
-    //     if (expr.getLeft() instanceof BinaryExpression && 
-    //         ((BinaryExpression)expr.getLeft()).getOperator().equals("+")) {
-    //         generateStringConcatenation((BinaryExpression)expr.getLeft(), sb);
-    //     } else {
-    //         generateExpression(expr.getLeft(), sb);
-    //         sb.append("    invokevirtual java/lang/StringBuilder/append(");
-    //         appendAppropriateType(getExpressionType(expr.getLeft()), sb);
-    //         sb.append(")Ljava/lang/StringBuilder;\n");
-    //     }
+    private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
+        if (expr.getLeft() instanceof BinaryExpression && 
+            ((BinaryExpression)expr.getLeft()).getOperator().equals("+")) {
+            generateStringConcatenation((BinaryExpression)expr.getLeft(), sb);
+        } else {
+            generateExpression(expr.getLeft(), sb);
+            sb.append("    invokevirtual java/lang/StringBuilder/append(");
+            appendAppropriateType(getExpressionType(expr.getLeft()), sb);
+            sb.append(")Ljava/lang/StringBuilder;\n");
+        }
         
-    //     generateExpression(expr.getRight(), sb);
-    //     sb.append("    invokevirtual java/lang/StringBuilder/append(");
-    //     appendAppropriateType(getExpressionType(expr.getRight()), sb);
-    //     sb.append(")Ljava/lang/StringBuilder;\n");
-    // }
+        generateExpression(expr.getRight(), sb);
+        sb.append("    invokevirtual java/lang/StringBuilder/append(");
+        appendAppropriateType(getExpressionType(expr.getRight()), sb);
+        sb.append(")Ljava/lang/StringBuilder;\n");
+    }
 
     private void appendAppropriateType(Type type, StringBuilder sb) {
         if (type == Type.INTEGER) {
@@ -527,11 +552,9 @@ public class JasminCodeGenerator {
                 sb.append("    iconst_").append(value).append("\n");
             } else if (value >= -128 && value <= 127) {
                 sb.append("    bipush ").append(value).append("\n");
-            } 
-            else if (value >= -32768 && value <= 32767) {
+            } else if (value >= -32768 && value <= 32767) {
                 sb.append("    sipush ").append(value).append("\n");
-            }
-            else {
+            } else {
                 sb.append("    ldc ").append(value).append("\n");
             }
         } else if (expr instanceof RealLiteral) {
@@ -540,7 +563,8 @@ public class JasminCodeGenerator {
         } else if (expr instanceof BooleanLiteral) {
             sb.append("    iconst_").append(((BooleanLiteral) expr).getValue() ? "1" : "0").append("\n");
         } else if (expr instanceof StringLiteral) {
-            sb.append("    ldc \"").append(((StringLiteral) expr).getValue()).append("\"\n");
+            String value = ((StringLiteral) expr).getValue();
+            sb.append("    ldc \"").append(value).append("\"\n");
         } else if (expr instanceof VariableReference) {
             String varName = ((VariableReference) expr).getName();
             Integer varIndex = localVariables.get(varName);
@@ -548,12 +572,11 @@ public class JasminCodeGenerator {
             if (varIndex != null) {
                 generateLoad(varType, varIndex, sb);
             } else {
-                // Check if it's a global variable
+                // Handle global variables
                 varType = globalVariableTypes.get(varName);
                 if (varType == null) {
                     throw new RuntimeException("Undefined variable: " + varName);
                 }
-                // Load global variable
                 String fieldDescriptor = getTypeDescriptor(varType);
                 sb.append("    getstatic Main/").append(varName).append(" ").append(fieldDescriptor).append("\n");
             }
@@ -731,29 +754,6 @@ public class JasminCodeGenerator {
             }
         }
     }
-
-    private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
-        sb.append("    new java/lang/StringBuilder\n");
-        sb.append("    dup\n");
-        sb.append("    invokespecial java/lang/StringBuilder/<init>()V\n");
-
-        generateStringAppend(expr, sb);
-
-        sb.append("    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;\n");
-    }
-    private void generateStringAppend(Expression expr, StringBuilder sb) {
-    if (expr instanceof BinaryExpression && ((BinaryExpression)expr).getOperator().equals("+")) {
-        BinaryExpression binaryExpr = (BinaryExpression) expr;
-        generateStringAppend(binaryExpr.getLeft(), sb);
-        generateStringAppend(binaryExpr.getRight(), sb);
-    } else {
-        // sb.append("    dup\n");
-        generateExpression(expr, sb);
-        sb.append("    invokevirtual java/lang/StringBuilder/append(");
-        appendAppropriateType(getExpressionType(expr), sb);
-        sb.append(")Ljava/lang/StringBuilder;\n");
-    }
-}
 
     private void generateReadStatement(ReadStatement stmt, StringBuilder sb) {
         String varName = stmt.getVariable();

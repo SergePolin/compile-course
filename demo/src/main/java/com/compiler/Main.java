@@ -26,6 +26,12 @@ public class Main {
 
             System.out.println("Parsed successfully!");
 
+            // Print AST
+            System.out.println("\nAbstract Syntax Tree:");
+            System.out.println("----------------------------");
+            System.out.println(program.toString());
+            System.out.println("----------------------------\n");
+
             // Perform semantic analysis
             SemanticAnalyzer analyzer = new SemanticAnalyzer();
             List<SemanticError> errors = analyzer.analyze(program);
