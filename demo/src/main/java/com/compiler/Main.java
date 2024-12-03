@@ -6,7 +6,6 @@ import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java.io.FileReader;
 import java.util.List;
-import jasmin.ClassFile;
 import java.io.*;
 
 public class Main {
@@ -25,7 +24,6 @@ public class Main {
             Symbol parseTree = parser.parse();
             Program program = (Program) parseTree.value;
 
-            // Add this after parsing but before semantic analysis
             System.out.println("Parsed successfully!");
 
             // Perform semantic analysis
@@ -43,32 +41,29 @@ public class Main {
 
             System.out.println("Semantic analysis completed successfully!");
 
-            // Generate Jasmin assembly code
-            JasminCodeGenerator codeGen = new JasminCodeGenerator(analyzer.getSymbolTable());
-            String jasminCode = codeGen.generate(program);
-
             // Create output directory if it doesn't exist
             File outputDir = new File(outputPath);
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
             }
 
-            // Write Jasmin assembly to file
-            String jasminFile = outputPath + "/Main.j";
-            try (FileWriter writer = new FileWriter(jasminFile)) {
+            // Generate Jasmin assembly code
+            JasminCodeGenerator codeGen = new JasminCodeGenerator(analyzer.getSymbolTable());
+            String jasminCode = codeGen.generate(program);
+
+            // Write Main.j assembly to file
+            String mainJasminFile = outputPath + "/Main.j";
+            try (FileWriter writer = new FileWriter(mainJasminFile)) {
                 writer.write(jasminCode);
             }
 
-            // Assemble the Jasmin code into a class file
-            ClassFile classFile = new ClassFile();
-            classFile.readJasmin(new FileInputStream(jasminFile), "Main", false);
-            String classFileName = outputPath + "/Main.class";
-            try (FileOutputStream fos = new FileOutputStream(classFileName)) {
-                classFile.write(fos);
+            // Compile all .j files in the output directory
+            File[] jasminFiles = outputDir.listFiles((dir, name) -> name.endsWith(".j"));
+            if (jasminFiles != null) {
+                for (File jasminFile : jasminFiles) {
+                    compileJasminFile(jasminFile.getPath(), outputPath);
+                }
             }
-
-            System.out.println("Compilation completed successfully!");
-            System.out.println("Generated class file: " + classFileName);
 
             // Run the compiled program
             System.out.println("\nRunning the compiled program:");
@@ -82,13 +77,43 @@ public class Main {
             System.out.println("----------------------------");
             System.out.println("Program finished with exit code: " + exitCode);
 
-            // Print the AST
-            System.out.println("\nAbstract Syntax Tree:");
-            System.out.println(program);
-
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(1);
+        }
+    }
+
+    private static void compileJasminFile(String jasminFile, String outputDir) {
+        try {
+            // Use ProcessBuilder to run jasmin.jar
+            ProcessBuilder pb = new ProcessBuilder(
+                "java", 
+                "-jar", 
+                "lib/jasmin.jar", 
+                "-d", 
+                outputDir, 
+                jasminFile
+            );
+            
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                System.out.println("Successfully compiled " + jasminFile);
+            } else {
+                System.err.println("Error compiling " + jasminFile + ". Exit code: " + exitCode);
+                
+                // Print error output if any
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getErrorStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.err.println(line);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error compiling " + jasminFile + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

@@ -34,11 +34,6 @@
             <artifactId>java-cup</artifactId>
             <version>11b-20160615</version>
         </dependency>
-        <dependency>
-            <groupId>ca.mcgill.sable</groupId>
-            <artifactId>jasmin</artifactId>
-            <version>3.0.3</version>
-        </dependency>
     </dependencies>
 
     <build>
