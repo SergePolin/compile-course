@@ -13,6 +13,7 @@ public class JasminCodeGenerator {
     private Map<String, Integer> localVariables = new HashMap<>();
     private Map<String, Type> variableTypes = new HashMap<>();
     private Map<String, Type> globalVariableTypes = new HashMap<>();
+    private boolean scannerInitialized = false;
 
     private int nextIntVariable = 1;
     private int nextLocalVariableIndex = 1;
@@ -46,6 +47,12 @@ public class JasminCodeGenerator {
         // Class header
         sb.append(".class public Main\n");
         sb.append(".super java/lang/Object\n\n");
+
+        // Add Scanner field at the beginning if needed
+        if (!scannerInitialized) {
+            sb.append(".field private static scanner Ljava/util/Scanner;\n\n");
+            scannerInitialized = true;
+        }
 
         // Generate global variable fields and store their types
         for (Statement stmt : program.getStatements()) {
@@ -84,8 +91,17 @@ public class JasminCodeGenerator {
 
         // Generate main method
         sb.append(".method public static main([Ljava/lang/String;)V\n");
-        sb.append("    .limit stack 4\n");
+        sb.append("    .limit stack 6\n");
         sb.append("    .limit locals 20\n\n");
+
+        // Initialize Scanner at the beginning of main if needed
+        if (hasReadStatements(program)) {
+            sb.append("    new java/util/Scanner\n");
+            sb.append("    dup\n");
+            sb.append("    getstatic java/lang/System/in Ljava/io/InputStream;\n");
+            sb.append("    invokespecial java/util/Scanner/<init>(Ljava/io/InputStream;)V\n");
+            sb.append("    putstatic Main/scanner Ljava/util/Scanner;\n\n");
+        }
 
         // Reset local variable counter for main method
         nextLocalVariableIndex = 1;  // Start at 1 because 0 is reserved for args array
@@ -167,6 +183,10 @@ public class JasminCodeGenerator {
 
             // Store the type in globalVariableTypes
             globalVariableTypes.put(arrayDecl.getName(), arrayDecl.getType());
+        }
+        if (!scannerInitialized) {
+            sb.append(".field private static scanner Ljava/util/Scanner;\n\n");
+            scannerInitialized = true;
         }
     }
 
@@ -332,6 +352,8 @@ public class JasminCodeGenerator {
             generateForLoop(program, (ForLoop) stmt, sb);
         } else if (stmt instanceof ReturnStatement) {
             generateReturnStatement((ReturnStatement) stmt, sb);
+        } else if (stmt instanceof ReadStatement) {
+            generateReadStatement((ReadStatement) stmt, sb);
         }
     }
 
@@ -371,6 +393,8 @@ public class JasminCodeGenerator {
             sb.append("    istore ").append(varIndex).append("\n");
         } else if (type instanceof SimpleType && ((SimpleType)type).getName().equals("real")) {
             sb.append("    dstore ").append(varIndex).append("\n");  // Changed from fstore to dstore
+        } else if (type == Type.STRING) {
+            sb.append("    astore ").append(varIndex).append("\n");
         }
     }
 
@@ -379,6 +403,8 @@ public class JasminCodeGenerator {
             sb.append("    iload ").append(varIndex).append("\n");
         } else if (type instanceof SimpleType && ((SimpleType)type).getName().equals("real")) {
             sb.append("    dload ").append(varIndex).append("\n");  // Changed from fload to dload
+        } else if (type == Type.STRING) {
+            sb.append("    aload ").append(varIndex).append("\n");
         }
     }
 
@@ -427,22 +453,22 @@ public class JasminCodeGenerator {
         sb.append("\n");
     }
 
-    private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
-        if (expr.getLeft() instanceof BinaryExpression && 
-            ((BinaryExpression)expr.getLeft()).getOperator().equals("+")) {
-            generateStringConcatenation((BinaryExpression)expr.getLeft(), sb);
-        } else {
-            generateExpression(expr.getLeft(), sb);
-            sb.append("    invokevirtual java/lang/StringBuilder/append(");
-            appendAppropriateType(getExpressionType(expr.getLeft()), sb);
-            sb.append(")Ljava/lang/StringBuilder;\n");
-        }
+    // private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
+    //     if (expr.getLeft() instanceof BinaryExpression && 
+    //         ((BinaryExpression)expr.getLeft()).getOperator().equals("+")) {
+    //         generateStringConcatenation((BinaryExpression)expr.getLeft(), sb);
+    //     } else {
+    //         generateExpression(expr.getLeft(), sb);
+    //         sb.append("    invokevirtual java/lang/StringBuilder/append(");
+    //         appendAppropriateType(getExpressionType(expr.getLeft()), sb);
+    //         sb.append(")Ljava/lang/StringBuilder;\n");
+    //     }
         
-        generateExpression(expr.getRight(), sb);
-        sb.append("    invokevirtual java/lang/StringBuilder/append(");
-        appendAppropriateType(getExpressionType(expr.getRight()), sb);
-        sb.append(")Ljava/lang/StringBuilder;\n");
-    }
+    //     generateExpression(expr.getRight(), sb);
+    //     sb.append("    invokevirtual java/lang/StringBuilder/append(");
+    //     appendAppropriateType(getExpressionType(expr.getRight()), sb);
+    //     sb.append(")Ljava/lang/StringBuilder;\n");
+    // }
 
     private void appendAppropriateType(Type type, StringBuilder sb) {
         if (type == Type.INTEGER) {
@@ -606,7 +632,11 @@ public class JasminCodeGenerator {
                 sb.append(label).append("_true:\n");
                 sb.append("    iconst_1\n");
                 sb.append(label).append("_end:\n");
-            } else {
+            } else if (op.equals("+") && (getExpressionType(binary.getLeft()) == Type.STRING || 
+                                  getExpressionType(binary.getRight()) == Type.STRING)) {
+                generateStringConcatenation(binary, sb);
+            }
+            else {
                 // Generate code for left and right operands
                 generateExpression(binary.getLeft(), sb);
                 generateExpression(binary.getRight(), sb);
@@ -672,6 +702,79 @@ public class JasminCodeGenerator {
                         throw new RuntimeException("Unknown operator: " + op);
                 }
             }
+        }
+    }
+
+    private void generateStringConcatenation(BinaryExpression expr, StringBuilder sb) {
+        sb.append("    new java/lang/StringBuilder\n");
+        sb.append("    dup\n");
+        sb.append("    invokespecial java/lang/StringBuilder/<init>()V\n");
+
+        generateStringAppend(expr, sb);
+
+        sb.append("    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;\n");
+    }
+    private void generateStringAppend(Expression expr, StringBuilder sb) {
+    if (expr instanceof BinaryExpression && ((BinaryExpression)expr).getOperator().equals("+")) {
+        BinaryExpression binaryExpr = (BinaryExpression) expr;
+        generateStringAppend(binaryExpr.getLeft(), sb);
+        generateStringAppend(binaryExpr.getRight(), sb);
+    } else {
+        // sb.append("    dup\n");
+        generateExpression(expr, sb);
+        sb.append("    invokevirtual java/lang/StringBuilder/append(");
+        appendAppropriateType(getExpressionType(expr), sb);
+        sb.append(")Ljava/lang/StringBuilder;\n");
+    }
+}
+
+    private void generateReadStatement(ReadStatement stmt, StringBuilder sb) {
+        String varName = stmt.getVariable();
+        Type varType = variableTypes.get(varName);
+        Integer varIndex = localVariables.get(varName);
+        boolean isGlobal = false;
+
+        if (varType == null || varIndex == null) {
+            varType = globalVariableTypes.get(varName);
+            if (varType == null) {
+                throw new RuntimeException("Undefined variable: " + varName);
+            }
+            isGlobal = true;
+        }
+
+        // Get scanner instance
+        sb.append("    getstatic Main/scanner Ljava/util/Scanner;\n");
+
+        if (varType == Type.INTEGER) {
+            sb.append("    invokevirtual java/util/Scanner/nextInt()I\n");
+            if (isGlobal) {
+                sb.append("    putstatic Main/").append(varName).append(" I\n");
+            } else {
+                sb.append("    istore ").append(varIndex).append("\n");
+            }
+        } else if (varType instanceof SimpleType && ((SimpleType) varType).getName().equals("real")) {
+            sb.append("    invokevirtual java/util/Scanner/nextDouble()D\n");
+            if (isGlobal) {
+                sb.append("    putstatic Main/").append(varName).append(" D\n");
+            } else {
+                sb.append("    dstore ").append(varIndex).append("\n");
+            }
+        } else if (varType == Type.STRING) {
+            sb.append("    invokevirtual java/util/Scanner/nextLine()Ljava/lang/String;\n");
+            if (isGlobal) {
+                sb.append("    putstatic Main/").append(varName).append(" Ljava/lang/String;\n");
+            } else {
+                sb.append("    astore ").append(varIndex).append("\n");
+            }
+        } else if (varType == Type.BOOLEAN) {
+            sb.append("    invokevirtual java/util/Scanner/nextBoolean()Z\n");
+            if (isGlobal) {
+                sb.append("    putstatic Main/").append(varName).append(" Z\n");
+            } else {
+                sb.append("    istore ").append(varIndex).append("\n");
+            }
+        } else {
+            throw new RuntimeException("Unsupported type for read: " + varType);
         }
     }
 
@@ -1288,5 +1391,20 @@ public class JasminCodeGenerator {
             return typeName;
         }
         throw new RuntimeException("Variable " + varName + " is not a record type");
+    }
+
+    // Add helper method to check if program contains read statements
+    private boolean hasReadStatements(Program program) {
+        for (Statement stmt : program.getStatements()) {
+            if (stmt instanceof RoutineDecl) {
+                RoutineDecl routine = (RoutineDecl) stmt;
+                for (Statement bodyStmt : routine.getBody()) {
+                    if (bodyStmt instanceof ReadStatement) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

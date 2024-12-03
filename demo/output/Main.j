@@ -1,6 +1,8 @@
 .class public Main
 .super java/lang/Object
 
+.field private static scanner Ljava/util/Scanner;
+
 .method public <init>()V
     aload_0
     invokespecial java/lang/Object/<init>()V
@@ -11,39 +13,19 @@
     .limit stack 20
     .limit locals 5
 
-    ; var firstName: string
-    ldc "John"
-
-    ; var lastName: string
-    ldc "Doe"
-
-    ; var fullName: string
-    ldc " "
-    iadd
-    iadd
-
     getstatic java/lang/System/out Ljava/io/PrintStream;
+    ldc "Hello, World!"
     invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 
     return
 .end method
 
 .method public static main([Ljava/lang/String;)V
-    .limit stack 4
+    .limit stack 6
     .limit locals 20
 
-    ; var firstName: string
-    ldc "John"
-
-    ; var lastName: string
-    ldc "Doe"
-
-    ; var fullName: string
-    ldc " "
-    iadd
-    iadd
-
     getstatic java/lang/System/out Ljava/io/PrintStream;
+    ldc "Hello, World!"
     invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
 
 

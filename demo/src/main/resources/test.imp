@@ -1,8 +1,23 @@
-// case: string
+// case: calculator
 routine main() is
-    var firstName: string is "John";
-    var lastName: string is "Doe";
-    var fullName: string is firstName + " " + lastName;
+    var a: integer;
+    var b: integer;
+    var op: string;
+    var result: integer;
 
-    print(fullName);  // Should print "John Doe"
+    read(a);
+    read(b);
+    read(op);
+
+    if op = "+" then
+        result := a + b;
+    else if op = "-" then
+        result := a - b;
+    else if op = "*" then
+        result := a * b;
+    else if op = "/" then
+        result := a / b;
+    end;
+
+    print(result);
 end;
