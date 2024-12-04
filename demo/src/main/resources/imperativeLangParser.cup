@@ -163,7 +163,6 @@ expression ::=
     | REAL_LITERAL:value {: RESULT = new RealLiteral(value); :}
     | STRING_LITERAL:value 
     {: 
-        System.out.println("[DEBUG] Parsing string literal: " + value);
         RESULT = new StringLiteral(value); 
     :}
     | BOOLEAN_LITERAL:value {: RESULT = new BooleanLiteral(value); :}

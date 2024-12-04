@@ -28,11 +28,11 @@ This project implements a compiler/parser for imperative programming languages u
 
 - JFlex (1.8.2) - Lexical analyzer generator
 - Java CUP (11b-20160615) - Parser generator
-- JUnit (3.8.1) - Testing framework
+- JUnit (4.13.2) - Testing framework
 
-## Building the Project
+## Development Build
 
-To build the project, run:
+To build the project for development, run:
 
 ```bash
 mvn clean install
@@ -45,12 +45,43 @@ This will:
 4. Run tests
 5. Create the final JAR file
 
-## Usage
+## Production Deployment
 
-After building, you can run the parser with:
+To prepare the project for production deployment:
+
+1. Build the production JAR:
+
+```bash
+mvn clean package
+```
+
+This will create a self-contained executable JAR in the `target` directory.
+
+2. Run the production JAR:
 
 ```bash
 java -jar target/imperativeLangParser-1.0-SNAPSHOT.jar <input-file>
+```
+
+### Production Considerations
+
+- The production JAR includes all necessary dependencies
+- JVM memory can be configured using `-Xmx` and `-Xms` flags if needed
+- For logging in production, configure `log4j` properties in the resources directory
+- Monitor memory usage and performance in production environment
+
+## Usage Examples
+
+1. Basic usage:
+
+```bash
+java -jar target/imperativeLangParser-1.0-SNAPSHOT.jar examples/basic.imp
+```
+
+2. With increased memory:
+
+```bash
+java -Xmx2g -jar target/imperativeLangParser-1.0-SNAPSHOT.jar examples/large.imp
 ```
 
 ## Development
@@ -59,6 +90,13 @@ The project uses:
 - Maven for dependency management and build automation
 - JFlex for lexical analysis
 - Java CUP for parser generation
+
+### Development Guidelines
+
+1. Follow Java coding standards
+2. Add unit tests for new features
+3. Update documentation for API changes
+4. Use meaningful commit messages
 
 ## License
 

@@ -1,21 +1,38 @@
 package com.compiler;
 
+/**
+ * Represents a string literal expression in the source code.
+ * Handles string values with escape sequences like \n, \t, \", etc.
+ */
 public class StringLiteral extends Expression {
+    /** The raw string value including quotes and escape sequences */
     private final String value;
 
+    /**
+     * Creates a new StringLiteral with the given raw string value.
+     * @param value The raw string value including quotes and escape sequences
+     */
     public StringLiteral(String value) {
-        System.out.println("[DEBUG] Creating StringLiteral with raw value: " + value);
         this.value = value;
     }
 
+    /**
+     * Gets the processed string value with quotes removed and escape sequences converted.
+     * Handles common escape sequences like:
+     * - \\ -> \
+     * - \n -> newline
+     * - \t -> tab
+     * - \" -> "
+     * - \r -> carriage return
+     * 
+     * @return The processed string value, or empty string if input is invalid
+     */
     public String getValue() {
         if (value == null || value.length() < 2) {
-            System.out.println("[DEBUG] Invalid string value: " + value);
             return "";
         }
         
         String unquoted = value.substring(1, value.length() - 1);
-        System.out.println("[DEBUG] Unquoted string value: " + unquoted);
         
         String unescaped = unquoted
             .replace("\\\\", "\\")
@@ -24,15 +41,22 @@ public class StringLiteral extends Expression {
             .replace("\\\"", "\"")
             .replace("\\r", "\r");
             
-        System.out.println("[DEBUG] Final string value: " + unescaped);
         return unescaped;
     }
 
+    /**
+     * Evaluates this string literal by returning its processed value.
+     * @return The processed string value
+     */
     @Override
     public Object evaluate() {
         return getValue();
     }
 
+    /**
+     * Returns a string representation of this string literal.
+     * @return String in format "StringLiteral(value)"
+     */
     @Override
     public String toString() {
         return "StringLiteral(" + value + ")";

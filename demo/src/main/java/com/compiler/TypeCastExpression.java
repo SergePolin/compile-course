@@ -1,29 +1,55 @@
 package com.compiler;
 
+/**
+ * Represents a type cast expression in the AST.
+ * This node handles the conversion of expressions between different types (real, integer, boolean).
+ */
 public class TypeCastExpression extends Expression {
     private Expression expression;
     private String targetType;
 
+    /**
+     * Creates a new type cast expression.
+     *
+     * @param expression The expression to be cast
+     * @param targetType The type to cast the expression to ("real", "integer", or "boolean")
+     */
     public TypeCastExpression(Expression expression, String targetType) {
         this.expression = expression;
         this.targetType = targetType;
     }
 
+    /**
+     * Gets the expression being cast.
+     *
+     * @return The expression being cast
+     */
     public Expression getExpression() {
         return expression;
     }
 
+    /**
+     * Gets the target type for the cast.
+     *
+     * @return The target type as a string
+     */
     public String getTargetType() {
         return targetType;
     }
 
     @Override
     public String toString() {
-        return "(" + targetType + ")\n" +
-                "  " + expression.toString().replace("\n", "\n  ");
+        return "TypeCast[" + targetType + "](\n" +
+                "  " + expression.toString().replace("\n", "\n  ") + "\n)";
     }
 
-    // Example evaluate method (you may adjust based on your needs)
+    /**
+     * Evaluates the type cast expression by converting the value of the inner expression
+     * to the target type.
+     *
+     * @return The converted value
+     * @throws RuntimeException if the cast operation is invalid
+     */
     public Object evaluate() {
         Object value = expression.evaluate();
         switch (targetType) {

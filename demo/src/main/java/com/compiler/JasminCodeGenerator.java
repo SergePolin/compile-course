@@ -8,37 +8,72 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.File;
 
+/**
+ * Jasmin bytecode generator for the compiler.
+ * This class is responsible for generating JVM bytecode in Jasmin assembly format
+ * from the parsed and semantically analyzed program. It handles the translation of
+ * high-level language constructs into low-level JVM instructions.
+ */
 public class JasminCodeGenerator {
+    /** Counter for generating unique labels in the bytecode */
     private int labelCounter = 0;
+    /** Maps variable names to their local variable indices */
     private Map<String, Integer> localVariables = new HashMap<>();
+    /** Maps variable names to their types for local variables */
     private Map<String, Type> variableTypes = new HashMap<>();
+    /** Maps variable names to their types for global variables */
     private Map<String, Type> globalVariableTypes = new HashMap<>();
+    /** Flag indicating if the Scanner class has been initialized for input operations */
     private boolean scannerInitialized = false;
+    /** Flag for enabling debug output */
+    private boolean debug = false;
 
+    /** Next available index for integer variables */
     private int nextIntVariable = 1;
+    /** Next available index for local variables */
     private int nextLocalVariableIndex = 1;
-    private int nextDoubleVariable = 10;  // Start doubles at a higher index to avoid overlap
+    /** Next available index for double variables (starts higher to avoid overlap) */
+    private int nextDoubleVariable = 10;
+    /** Symbol table containing program's semantic information */
     private SymbolTable symbolTable;
 
-    public JasminCodeGenerator(SymbolTable symbolTable) {
+    /**
+     * Constructs a new JasminCodeGenerator with the given symbol table and debug setting.
+     *
+     * @param symbolTable The symbol table containing program's semantic information
+     * @param debug Flag to enable/disable debug output during code generation
+     */
+    public JasminCodeGenerator(SymbolTable symbolTable, boolean debug) {
         this.symbolTable = symbolTable;
+        this.debug = debug;
+    }
+
+    /**
+     * Outputs debug information if debug mode is enabled.
+     *
+     * @param message The debug message to output
+     */
+    private void debugLog(String message) {
+        if (debug) {
+            System.err.println("[DEBUG] " + message);
+        }
     }
 
     public String generate(Program program) {
-        System.out.println("[DEBUG] Starting code generation");
+        debugLog("Starting code generation");
         localVariables.clear();
         variableTypes.clear();
         globalVariableTypes.clear();  // Clear global variables
         StringBuilder sb = new StringBuilder();
 
         // Generate record type classes first
-        System.out.println("[DEBUG] Generating record type classes");
+        debugLog("Generating record type classes");
         for (Statement stmt : program.getStatements()) {
-            System.out.println("[DEBUG] Processing statement: " + stmt.getClass().getSimpleName());
+            debugLog("Processing statement: " + stmt.getClass().getSimpleName());
             if (stmt instanceof TypeDecl) {  // Changed from RecordTypeDecl to TypeDecl
                 TypeDecl typeDecl = (TypeDecl) stmt;
                 if (typeDecl.getType() instanceof RecordType) {
-                    System.out.println("[DEBUG] Found record type declaration: " + typeDecl.getName());
+                    debugLog("Found record type declaration: " + typeDecl.getName());
                     generateRecordTypeClass(typeDecl);
                 }
             }
@@ -67,7 +102,7 @@ public class JasminCodeGenerator {
                 
                 // Store the type in globalVariableTypes
                 globalVariableTypes.put(varDecl.getName(), varDecl.getType());
-                System.out.println("[DEBUG] Stored global variable: " + varDecl.getName() + 
+                debugLog("Stored global variable: " + varDecl.getName() + 
                                  " with type: " + varDecl.getType());
             }
             if (stmt instanceof ArrayDecl) {
@@ -202,7 +237,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateRoutineDecl(Program program, RoutineDecl routine, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating routine: " + routine.getName());
+        debugLog("Generating routine: " + routine.getName());
     // Clear local variables for new routine
     localVariables.clear();
     variableTypes.clear();
@@ -284,7 +319,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateRoutineCall(RoutineCall call, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating routine call: " + call.getName());
+        debugLog("Generating routine call: " + call.getName());
 
         // Retrieve the RoutineDecl from the symbol table
         RoutineDecl routine = symbolTable.getRoutine(call.getName());
@@ -315,7 +350,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateStatement(Program program, Statement stmt, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating statement: " + stmt.getClass().getName());
+        debugLog("Generating statement: " + stmt.getClass().getName());
         
         if (stmt instanceof VarDecl) {
             generateVarDecl((VarDecl) stmt, sb);
@@ -326,25 +361,24 @@ public class JasminCodeGenerator {
         } else if (stmt instanceof RoutineDecl) {
             generateRoutineDecl(program, (RoutineDecl) stmt, sb);
         } else if (stmt instanceof RoutineCallStatement) {
-            System.out.println("[DEBUG] Found RoutineCallStatement");
+            debugLog("Found RoutineCallStatement");
             try {
                 RoutineCallStatement routineCall = (RoutineCallStatement) stmt;
-                System.out.println("[DEBUG] Successfully cast to RoutineCallStatement");
-                System.out.println("[DEBUG] Routine name: " + routineCall.getName());
+                debugLog("Successfully cast to RoutineCallStatement");
+                debugLog("Routine name: " + routineCall.getName());
                 
-                // Create a RoutineCall from the RoutineCallStatement
                 RoutineCall call = new RoutineCall(routineCall.getName(), routineCall.getArguments());
                 generateRoutineCall(call, sb);
                 
                 RoutineDecl routine = symbolTable.getRoutine(routineCall.getName());
-                System.out.println("[DEBUG] Found routine declaration: " + (routine != null));
+                debugLog("Found routine declaration: " + (routine != null));
                 
                 if (routine != null && routine.getReturnType() != Type.VOID) {
-                    System.out.println("[DEBUG] Adding pop instruction for non-void return value");
+                    debugLog("Adding pop instruction for non-void return value");
                     sb.append("    pop\n");
                 }
             } catch (Exception e) {
-                System.err.println("[ERROR] Failed to process RoutineCallStatement: " + e.getMessage());
+                System.err.println("Failed to process RoutineCallStatement: " + e.getMessage());
                 e.printStackTrace();
             }
         } else if (stmt instanceof IfStatement) {
@@ -363,7 +397,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateVarDecl(VarDecl decl, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating variable declaration: " + decl.getName());
+        debugLog("Generating variable declaration: " + decl.getName());
         Type type = decl.getType();
         int varIndex = nextLocalVariableIndex;
         
@@ -545,7 +579,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateExpression(Expression expr, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating expression: " + expr.getClass().getSimpleName());
+        debugLog("Generating expression: " + expr.getClass().getSimpleName());
         if (expr instanceof IntegerLiteral) {
             int value = ((IntegerLiteral) expr).getValue();
             if (value >= -1 && value <= 5) {
@@ -888,7 +922,7 @@ public class JasminCodeGenerator {
         Type sourceType = getExpressionType(cast.getExpression());
         Type targetType = cast.getTargetType();
 
-        System.out.println("[DEBUG] Generating type cast from " + sourceType + " to " + targetType);
+        debugLog("Generating type cast from " + sourceType + " to " + targetType);
 
         if (sourceType == Type.INTEGER && targetType instanceof SimpleType && 
             ((SimpleType)targetType).getName().equals("real")) {
@@ -1158,7 +1192,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateArrayDecl(ArrayDecl decl, StringBuilder sb) {
-        System.out.println("[DEBUG] Generating array declaration: " + decl.getName());
+        debugLog("Generating array declaration: " + decl.getName());
         ArrayType arrayType = (ArrayType) decl.getType();
         Type elementType = arrayType.getElementType();
         int size = arrayType.getSize();
@@ -1324,7 +1358,7 @@ public class JasminCodeGenerator {
     }
 
     private void generateRecordTypeClass(TypeDecl typeDecl) {
-        System.out.println("[DEBUG] Generating record type class: " + typeDecl.getName());
+        debugLog("Generating record type class: " + typeDecl.getName());
         StringBuilder sb = new StringBuilder();
         
         // Generate class header
@@ -1336,7 +1370,7 @@ public class JasminCodeGenerator {
         Map<String, Type> fields = recordType.getFields();
         for (Map.Entry<String, Type> field : fields.entrySet()) {
             String fieldDescriptor = getTypeDescriptor(field.getValue());
-            System.out.println("[DEBUG] Adding field: " + field.getKey() + " with descriptor: " + fieldDescriptor);
+            debugLog("Adding field: " + field.getKey() + " with descriptor: " + fieldDescriptor);
             sb.append(".field public ")
               .append(field.getKey())
               .append(" ")
@@ -1354,22 +1388,24 @@ public class JasminCodeGenerator {
         sb.append(".end method\n");
 
         // Write to file in output directory
-        System.out.println("[DEBUG] Writing record type class file");
+        debugLog("Writing record type class file");
         try {
             File outputDir = new File("output");
             if (!outputDir.exists()) {
                 outputDir.mkdirs();
-                System.out.println("[DEBUG] Created output directory: " + outputDir.getAbsolutePath());
+                debugLog("Created output directory: " + outputDir.getAbsolutePath());
             }
             String filePath = outputDir + "/" + typeDecl.getName() + ".j";
-            System.out.println("[DEBUG] Writing to file: " + filePath);
+            debugLog("Writing to file: " + filePath);
             try (FileWriter writer = new FileWriter(filePath)) {
                 writer.write(sb.toString());
-                System.out.println("[DEBUG] Successfully wrote record type class file");
-                System.out.println("[DEBUG] File contents:\n" + sb.toString());
+                debugLog("Successfully wrote record type class file");
+                if (debug) {
+                    debugLog("File contents:\n" + sb.toString());
+                }
             }
         } catch (IOException e) {
-            System.err.println("[DEBUG] Failed to write record type class file: " + e.getMessage());
+            System.err.println("Failed to write record type class file: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("Failed to write record type class file", e);
         }
@@ -1422,7 +1458,7 @@ public class JasminCodeGenerator {
 
     private String getRecordTypeName(String varName) {
         Type type = globalVariableTypes.get(varName);
-        System.out.println("[DEBUG] Getting record type for: " + varName + ", type: " + type);
+        debugLog("Getting record type for: " + varName + ", type: " + type);
         
         if (type == null) {
             throw new RuntimeException("Variable not found: " + varName);
@@ -1430,7 +1466,7 @@ public class JasminCodeGenerator {
         
         if (type instanceof SimpleType) {
             String typeName = ((SimpleType) type).getName();
-            System.out.println("[DEBUG] Found record type name: " + typeName);
+            debugLog("Found record type name: " + typeName);
             return typeName;
         }
         throw new RuntimeException("Variable " + varName + " is not a record type");

@@ -1,28 +1,59 @@
 package com.compiler;
 
+/**
+ * Represents a binary expression in the source code.
+ * A binary expression consists of a left operand, an operator, and a right operand.
+ * Supports arithmetic, logical, and comparison operators.
+ */
 public class BinaryExpression extends Expression {
+    /** The left operand expression */
     private Expression left;
+    /** The operator symbol/string */
     private String operator;
+    /** The right operand expression */
     private Expression right;
 
+    /**
+     * Creates a new binary expression with the given operands and operator.
+     * @param left The left operand expression
+     * @param operator The operator symbol/string
+     * @param right The right operand expression
+     */
     public BinaryExpression(Expression left, String operator, Expression right) {
         this.left = left;
         this.operator = operator;
         this.right = right;
     }
 
+    /**
+     * Gets the left operand expression.
+     * @return The left operand
+     */
     public Expression getLeft() {
         return left;
     }
 
+    /**
+     * Gets the right operand expression.
+     * @return The right operand
+     */
     public Expression getRight() {
         return right;
     }
 
+    /**
+     * Gets the operator symbol/string.
+     * @return The operator
+     */
     public String getOperator() {
         return operator;
     }
 
+    /**
+     * Evaluates this binary expression by evaluating both operands and applying the operator.
+     * @return The result of evaluating the expression
+     * @throws RuntimeException if the operator is unknown or operand types are invalid
+     */
     @Override
     public Object evaluate() {
         Object leftVal = left.evaluate();
@@ -62,7 +93,13 @@ public class BinaryExpression extends Expression {
         }
     }
 
-    // Helper methods for operations
+    /**
+     * Performs addition of two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The sum of the operands
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object add(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left + (Integer) right;
@@ -71,7 +108,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for +");
     }
 
-    // Implement other operation methods similarly
+    /**
+     * Performs subtraction of two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The difference of the operands
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object subtract(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left - (Integer) right;
@@ -79,6 +122,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for -");
     }
 
+    /**
+     * Performs multiplication of two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The product of the operands
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object multiply(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left * (Integer) right;
@@ -86,6 +136,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for *");
     }
 
+    /**
+     * Performs division of two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The quotient of the operands
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object divide(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left / (Integer) right;
@@ -93,6 +150,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for /");
     }
 
+    /**
+     * Performs modulo operation on two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The remainder after division
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object mod(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left % (Integer) right;
@@ -100,6 +164,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for %");
     }
 
+    /**
+     * Performs logical AND operation on two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The result of the AND operation
+     * @throws RuntimeException if operands are not both booleans
+     */
     private Object and(Object left, Object right) {
         if (left instanceof Boolean && right instanceof Boolean) {
             return (Boolean) left && (Boolean) right;
@@ -107,6 +178,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for and");
     }
 
+    /**
+     * Performs logical OR operation on two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The result of the OR operation
+     * @throws RuntimeException if operands are not both booleans
+     */
     private Object or(Object left, Object right) {
         if (left instanceof Boolean && right instanceof Boolean) {
             return (Boolean) left || (Boolean) right;
@@ -114,6 +192,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for or");
     }
 
+    /**
+     * Performs logical XOR operation on two operands.
+     * @param left The left operand
+     * @param right The right operand
+     * @return The result of the XOR operation
+     * @throws RuntimeException if operands are not both booleans
+     */
     private Object xor(Object left, Object right) {
         if (left instanceof Boolean && right instanceof Boolean) {
             return (Boolean) left ^ (Boolean) right;
@@ -121,10 +206,23 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for xor");
     }
 
+    /**
+     * Checks if two operands are not equal.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if operands are not equal, false otherwise
+     */
     private Object notEquals(Object left, Object right) {
         return !left.equals(right);
     }
 
+    /**
+     * Checks if left operand is less than right operand.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if left is less than right, false otherwise
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object lessThan(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left < (Integer) right;
@@ -132,6 +230,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for <");
     }
 
+    /**
+     * Checks if left operand is less than or equal to right operand.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if left is less than or equal to right, false otherwise
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object lessOrEqual(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left <= (Integer) right;
@@ -139,6 +244,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for <=");
     }
 
+    /**
+     * Checks if left operand is greater than right operand.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if left is greater than right, false otherwise
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object greaterThan(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left > (Integer) right;
@@ -146,6 +258,13 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for >");
     }
 
+    /**
+     * Checks if left operand is greater than or equal to right operand.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if left is greater than or equal to right, false otherwise
+     * @throws RuntimeException if operands are not both integers
+     */
     private Object greaterOrEqual(Object left, Object right) {
         if (left instanceof Integer && right instanceof Integer) {
             return (Integer) left >= (Integer) right;
@@ -153,10 +272,20 @@ public class BinaryExpression extends Expression {
         throw new RuntimeException("Invalid operand types for >=");
     }
 
+    /**
+     * Checks if two operands are equal.
+     * @param left The left operand
+     * @param right The right operand
+     * @return True if operands are equal, false otherwise
+     */
     private Object equals(Object left, Object right) {
         return left.equals(right);
     }
 
+    /**
+     * Returns a string representation of this binary expression in tree format.
+     * @return A string showing the operator and both operands
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

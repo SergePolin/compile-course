@@ -13,32 +13,48 @@ import java.util.*;
  * - Unused variable detection
  */
 public class SemanticAnalyzer {
-    // Symbol table to track variables and their types across scopes
+    /** Symbol table to track variables and their types across different scopes */
     private SymbolTable symbolTable;
 
-    // List to collect semantic errors found during analysis
+    /** Collection of semantic errors found during the analysis phase */
     private List<SemanticError> errors;
 
-    // Stack to track expected return types when analyzing routines
+    /** Stack to track the expected return types when analyzing nested routines */
     private Stack<Type> expectedReturnTypes;
 
-    // Set to track which variables are actually used
+    /** Set of variables that are referenced in the code */
     private Set<String> usedVariables;
 
-    // Flags to track context during analysis
-    private boolean insideLoop; // Whether we're analyzing code inside a loop
-    private boolean insideRoutine; // Whether we're analyzing code inside a routine
+    /** Flag indicating whether the current analysis context is inside a loop structure */
+    private boolean insideLoop;
+    /** Flag indicating whether the current analysis context is inside a routine definition */
+    private boolean insideRoutine;
+
+    /** Flags to track context during analysis */
+    private boolean debug;  // Add debug flag
 
     /**
      * Creates a new semantic analyzer with empty state
      */
-    public SemanticAnalyzer() {
+    public SemanticAnalyzer(boolean debug) {  // Modified constructor
         this.symbolTable = new SymbolTable();
         this.errors = new ArrayList<>();
         this.expectedReturnTypes = new Stack<>();
         this.usedVariables = new HashSet<>();
         this.insideLoop = false;
         this.insideRoutine = false;
+        this.debug = debug;
+    }
+
+    // Add default constructor for backward compatibility
+    public SemanticAnalyzer() {
+        this(false);
+    }
+
+    private void debugLog(String message) {
+        if (debug) {
+            System.err.println("[DEBUG] Semantic Analysis: " + message);
+        }
     }
 
     /**
@@ -46,17 +62,21 @@ public class SemanticAnalyzer {
      * Performs semantic analysis and returns list of any errors found.
      */
     public List<SemanticError> analyze(Program program) {
+        debugLog("Starting semantic analysis");
         errors.clear();
         symbolTable.clear();
         usedVariables.clear();
         
         // Create global scope
         symbolTable.enterScope();
+        debugLog("Entered global scope");
         
         // First pass: collect all routine declarations
+        debugLog("First pass: collecting routine declarations");
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof RoutineDecl) {
                 RoutineDecl routine = (RoutineDecl) stmt;
+                debugLog("Found routine declaration: " + routine.getName());
                 if (!symbolTable.declareRoutine(routine.getName(), routine)) {
                     errors.add(new SemanticError("Routine " + routine.getName() + " is already defined"));
                 }
@@ -64,27 +84,34 @@ public class SemanticAnalyzer {
         }
         
         // Second pass: collect all type declarations
+        debugLog("Second pass: collecting type declarations");
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof TypeDecl) {
+                debugLog("Processing type declaration");
                 visitTypeDecl((TypeDecl) stmt);
             }
         }
         
         // Third pass: collect all variable declarations
+        debugLog("Third pass: collecting variable declarations");
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof VarDecl || stmt instanceof ArrayDecl) {
+                debugLog("Processing variable/array declaration");
                 visitStatement(stmt);
             }
         }
         
         // Fourth pass: analyze routine bodies
+        debugLog("Fourth pass: analyzing routine bodies");
         for (Statement stmt : program.getStatements()) {
             if (stmt instanceof RoutineDecl) {
+                debugLog("Analyzing routine body: " + ((RoutineDecl) stmt).getName());
                 visitRoutineBody((RoutineDecl) stmt);
             }
         }
         
         // Fifth pass: analyze remaining statements
+        debugLog("Fifth pass: analyzing remaining statements");
         for (Statement stmt : program.getStatements()) {
             if (!(stmt instanceof TypeDecl) && 
                 !(stmt instanceof VarDecl) && 
@@ -96,6 +123,13 @@ public class SemanticAnalyzer {
         
         // Exit global scope
         symbolTable.exitScope();
+        debugLog("Exited global scope");
+        
+        if (errors.isEmpty()) {
+            debugLog("Semantic analysis completed successfully");
+        } else {
+            debugLog("Semantic analysis completed with " + errors.size() + " errors");
+        }
         
         return errors;
     }
@@ -140,6 +174,7 @@ public class SemanticAnalyzer {
      * statement.
      */
     private void visitStatement(Statement stmt) {
+        debugLog("Visiting statement: " + stmt.getClass().getSimpleName());
         if (stmt instanceof VarDecl) {
             visitVarDecl((VarDecl) stmt);
         } else if (stmt instanceof ArrayDecl) {
@@ -168,6 +203,7 @@ public class SemanticAnalyzer {
      * - Type compatibility of initializer if present
      */
     private void visitVarDecl(VarDecl decl) {
+        debugLog("Visiting variable declaration: " + decl.getName());
         // Check if variable is already declared in current scope
         if (symbolTable.isDefinedInCurrentScope(decl.getName())) {
             errors.add(new SemanticError("Variable " + decl.getName() + " is already declared in this scope"));

@@ -14,18 +14,27 @@ import java.util.ArrayList;
  * The SymbolTable class manages variable, routine and type declarations during
  * semantic analysis.
  * It implements scope-based symbol management using a stack of hash maps.
+ * This class is responsible for:
+ * - Maintaining variable scope hierarchies
+ * - Managing routine declarations and their signatures
+ * - Tracking user-defined and built-in types
+ * - Providing symbol resolution across nested scopes
  */
 public class SymbolTable {
-    // Stack of scopes, where each scope is a map of variable names to their types
+    /** Stack of scope levels, where each scope is a map of variable names to their types.
+     * The first scope (index 0) is the global scope, and subsequent scopes represent nested blocks. */
     private List<Map<String, Type>> scopes;
 
-    // Map of routine names to their declarations
+    /** Map storing all routine declarations, keyed by routine name.
+     * Used for validating routine calls and type checking parameters. */
     private Map<String, RoutineDecl> routines;
 
-    // Map of user-defined type names to their type definitions
+    /** Map of user-defined type names to their corresponding type definitions.
+     * Includes record types, array types, and any other custom type declarations. */
     private Map<String, Type> types;
 
-    // Set of built-in type names like "integer", "boolean", etc.
+    /** Set containing the names of all built-in types supported by the language.
+     * This includes primitive types like "integer", "boolean", "real", etc. */
     private Set<String> builtInTypes;
 
     /**
