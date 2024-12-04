@@ -28,6 +28,7 @@ This project implements a compiler/parser for imperative programming languages u
 
 - JFlex (1.8.2) - Lexical analyzer generator
 - Java CUP (11b-20160615) - Parser generator
+- Jasmin (2.4) - Java bytecode generator
 - JUnit (4.13.2) - Testing framework
 
 ## Development Build
@@ -41,7 +42,7 @@ mvn clean install
 This will:
 1. Generate the lexer from JFlex specifications
 2. Generate the parser from CUP specifications
-3. Compile all Java sources
+3. Compile all Java sources (using Jasmin)
 4. Run tests
 5. Create the final JAR file
 
@@ -90,14 +91,4 @@ The project uses:
 - Maven for dependency management and build automation
 - JFlex for lexical analysis
 - Java CUP for parser generation
-
-### Development Guidelines
-
-1. Follow Java coding standards
-2. Add unit tests for new features
-3. Update documentation for API changes
-4. Use meaningful commit messages
-
-## License
-
-This project is part of a compiler course implementation. 
+- Jasmin for Java bytecode generation
