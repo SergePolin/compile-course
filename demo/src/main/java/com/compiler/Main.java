@@ -66,6 +66,20 @@ public class Main {
             Lexer lexer = new Lexer(new FileReader(inputFilePath), symbolFactory);
             ImperativeLangParser parser = new ImperativeLangParser(lexer, symbolFactory);
 
+            if (debug) {
+                err.println("\nLexical Analysis Output:");
+                err.println("----------------------------");
+                Symbol token;
+                while ((token = lexer.next_token()).sym != 0) { // 0 is EOF
+                    err.println("Token: " + token);
+                }
+                err.println("----------------------------\n");
+                
+                // Reset lexer for parsing
+                lexer = new Lexer(new FileReader(inputFilePath), symbolFactory);
+                parser = new ImperativeLangParser(lexer, symbolFactory);
+            }
+
             // Parse the input file
             Symbol parseTree = parser.parse();
             Program program = (Program) parseTree.value;

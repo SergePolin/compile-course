@@ -15,49 +15,17 @@
 
     iconst_0
     istore 0
-    iconst_0
-    istore 1
     iconst_1
-    istore 2
+    istore 1
 L0:
-    iload 2
+    iload 1
     iconst_5
     if_icmpgt L1
-    iconst_1
-    istore 3
-L2:
-    iload 3
-    iconst_5
-    if_icmpgt L3
-    iconst_0
-    istore 4
-    ; var product: SimpleType(integer)
-    iload 2
-    iload 3
-    imul
-    istore 4
-
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    new java/lang/StringBuilder
-    dup
-    invokespecial java/lang/StringBuilder/<init>()V
-    iload 2
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    ldc " * "
-    invokevirtual java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    iload 3
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    ldc " = "
-    invokevirtual java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    iload 4
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;
-    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+    iload 1
+    invokevirtual java/io/PrintStream/println(I)V
 
-    iinc 3 1
-    goto L2
-L3:
-    iinc 2 1
+    iinc 1 1
     goto L0
 L1:
     return
@@ -69,51 +37,19 @@ L1:
 
     iconst_0
     istore 1
-    iconst_0
+    iconst_1
     istore 2
-    iconst_1
-    istore 3
-L4:
-    iload 3
+L2:
+    iload 2
     iconst_5
-    if_icmpgt L5
-    iconst_1
-    istore 4
-L6:
-    iload 4
-    iconst_5
-    if_icmpgt L7
-    iconst_0
-    istore 5
-    ; var product: SimpleType(integer)
-    iload 3
-    iload 4
-    imul
-    istore 5
-
+    if_icmpgt L3
     getstatic java/lang/System/out Ljava/io/PrintStream;
-    new java/lang/StringBuilder
-    dup
-    invokespecial java/lang/StringBuilder/<init>()V
-    iload 3
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    ldc " * "
-    invokevirtual java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    iload 4
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    ldc " = "
-    invokevirtual java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    iload 5
-    invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;
-    invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;
-    invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V
+    iload 2
+    invokevirtual java/io/PrintStream/println(I)V
 
-    iinc 4 1
-    goto L6
-L7:
-    iinc 3 1
-    goto L4
-L5:
+    iinc 2 1
+    goto L2
+L3:
 
     return
 .end method
