@@ -8,7 +8,7 @@ This project implements a compiler/parser for imperative programming languages u
 
 ## Project Structure
 
-```
+```bash
 .
 ├── src/
 │   ├── main/      # Main source code
@@ -40,6 +40,7 @@ mvn clean install
 ```
 
 This will:
+
 1. Generate the lexer from JFlex specifications
 2. Generate the parser from CUP specifications
 3. Compile all Java sources (using Jasmin)
@@ -50,7 +51,7 @@ This will:
 
 To prepare the project for production deployment:
 
-1. Build the production JAR:
+1.Build the production JAR:
 
 ```bash
 mvn clean package
@@ -58,7 +59,7 @@ mvn clean package
 
 This will create a self-contained executable JAR in the `target` directory.
 
-2. Run the production JAR:
+2.Run the production JAR:
 
 ```bash
 java -jar target/imperativeLangParser-1.0-SNAPSHOT.jar <input-file>
@@ -73,13 +74,13 @@ java -jar target/imperativeLangParser-1.0-SNAPSHOT.jar <input-file>
 
 ## Usage Examples
 
-1. Basic usage:
+1.Basic usage:
 
 ```bash
 java -jar target/imperativeLangParser-1.0-SNAPSHOT.jar examples/basic.imp
 ```
 
-2. With increased memory:
+2.With increased memory:
 
 ```bash
 java -Xmx2g -jar target/imperativeLangParser-1.0-SNAPSHOT.jar examples/large.imp
@@ -88,6 +89,7 @@ java -Xmx2g -jar target/imperativeLangParser-1.0-SNAPSHOT.jar examples/large.imp
 ## Development
 
 The project uses:
+
 - Maven for dependency management and build automation
 - JFlex for lexical analysis
 - Java CUP for parser generation
