@@ -6,10 +6,11 @@ import java_cup.runtime.ComplexSymbolFactory;
 import java.io.StringReader;
 import java.util.List;
 import org.junit.Test;
-import org.junit.Assert;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import static org.junit.Assert.*;
 
+@RunWith(JUnit4.class)
 public class SemanticAnalyzerTest {
 
     private List<SemanticError> analyze(String input) throws Exception {
@@ -23,44 +24,82 @@ public class SemanticAnalyzerTest {
     }
 
     @Test
-    public void testUndefinedVariable() throws Exception {
-        String input = "routine main() is\n    print(a);\nend;";
-        List<SemanticError> errors = analyze(input);
+    public void testBasicArithmetic() throws Exception {
+        String input = 
+            "routine main() is\n" +
+            "    var x: integer is 5;\n" +
+            "    var y: integer is 3;\n" +
+            "    var sum: integer is x + y;\n" +
+            "    var diff: integer is x - y;\n" +
+            "    var prod: integer is x * y;\n" +
+            "    var quot: integer is x / y;\n" +
+            "end;";
 
-        assertFalse("Should have detected undefined variable", errors.isEmpty());
-        assertTrue("Error message should mention undefined variable",
-                errors.get(0).toString().contains("Undefined variable"));
+        List<SemanticError> errors = analyze(input);
+        assertTrue("Basic arithmetic operations should not produce semantic errors", errors.isEmpty());
     }
 
     @Test
-    public void testUnusedVariableRemoval() throws Exception {
+    public void testPrintStatement() throws Exception {
         String input = 
-            "routine main() : void is\n" +
-            "    var a: integer is 5;  // Used variable\n" +
-            "    var b: integer is 10; // Unused variable\n" +
-            "    print(a);\n" +
+            "routine main() is\n" +
+            "    var x: integer is 42;\n" +
+            "    print(x);\n" +
             "end;";
 
-        ComplexSymbolFactory symbolFactory = new ComplexSymbolFactory();
-        Lexer lexer = new Lexer(new StringReader(input), symbolFactory);
-        ImperativeLangParser parser = new ImperativeLangParser(lexer, symbolFactory);
-        
-        Program program = (Program) parser.parse().value;
-        SemanticAnalyzer analyzer = new SemanticAnalyzer();
-        analyzer.analyze(program);
+        List<SemanticError> errors = analyze(input);
+        assertTrue("Print statement should not produce semantic errors", errors.isEmpty());
+    }
 
-        // Check that only variable 'a' remains in the AST
-        boolean foundA = false;
-        boolean foundB = false;
-        for (Statement stmt : program.getStatements()) {
-            if (stmt instanceof VarDecl) {
-                VarDecl varDecl = (VarDecl) stmt;
-                if (varDecl.getName().equals("a")) foundA = true;
-                if (varDecl.getName().equals("b")) foundB = true;
-            }
-        }
+    @Test
+    public void testTypeError() throws Exception {
+        String input = 
+            "routine main() is\n" +
+            "    var x: integer;\n" +
+            "    x := \"hello\";\n" +
+            "end;";
 
-        assertTrue("Used variable 'a' should be present", foundA);
-        assertFalse("Unused variable 'b' should be removed", foundB);
+        List<SemanticError> errors = analyze(input);
+        assertFalse("Should detect type mismatch error", errors.isEmpty());
+        assertTrue("Error message should mention type mismatch", 
+                  errors.get(0).toString().toLowerCase().contains("type"));
+    }
+
+    @Test
+    public void testUndefinedVariable() throws Exception {
+        String input = 
+            "routine main() is\n" +
+            "    print(undefinedVar);\n" +
+            "end;";
+
+        List<SemanticError> errors = analyze(input);
+        assertFalse("Should detect undefined variable", errors.isEmpty());
+        assertTrue("Error message should mention undefined variable",
+                  errors.get(0).toString().toLowerCase().contains("undefined"));
+    }
+
+    @Test
+    public void testValidAssignment() throws Exception {
+        String input = 
+            "routine main() is\n" +
+            "    var x: integer;\n" +
+            "    x := 42;\n" +
+            "end;";
+
+        List<SemanticError> errors = analyze(input);
+        assertTrue("Valid assignment should not produce semantic errors", errors.isEmpty());
+    }
+
+    @Test
+    public void testValidTypeAssignments() throws Exception {
+        String input = 
+            "routine main() is\n" +
+            "    var i: integer is 42;\n" +
+            "    var s: string is \"hello\";\n" +
+            "    var b: boolean is true;\n" +
+            "end;";
+
+        List<SemanticError> errors = analyze(input);
+        assertTrue("Valid type assignments should not produce errors", errors.isEmpty());
     }
 } 

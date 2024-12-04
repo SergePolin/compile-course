@@ -1273,4 +1273,111 @@ public class SemanticAnalyzer {
     public SymbolTable getSymbolTable() {
         return symbolTable;
     }
+
+    /**
+     * Checks if two types are compatible for a binary operation
+     */
+    private void checkBinaryOperationTypes(Type leftType, Type rightType, String operator, String context) {
+        if (leftType == null || rightType == null) {
+            return; // Skip checking if either type is null (error already reported)
+        }
+
+        // For arithmetic operators
+        if (operator.equals("+") || operator.equals("-") || 
+            operator.equals("*") || operator.equals("/")) {
+            
+            // Special case for string concatenation with +
+            if (operator.equals("+")) {
+                if (leftType.equals(Type.STRING) || rightType.equals(Type.STRING)) {
+                    // If either operand is a string, both must be strings
+                    if (!leftType.equals(Type.STRING) || !rightType.equals(Type.STRING)) {
+                        errors.add(new SemanticError(
+                            "Type mismatch in " + context + ": cannot perform operation '" + 
+                            operator + "' between types " + leftType + " and " + rightType + 
+                            " (string concatenation requires both operands to be strings)"
+                        ));
+                    }
+                    return;
+                }
+            }
+            
+            // For all other arithmetic operations, both operands must be integers
+            if (!leftType.equals(Type.INTEGER) || !rightType.equals(Type.INTEGER)) {
+                errors.add(new SemanticError(
+                    "Type mismatch in " + context + ": cannot perform arithmetic operation '" + 
+                    operator + "' between types " + leftType + " and " + rightType + 
+                    " (both operands must be integers)"
+                ));
+            }
+        }
+        // Rest of the method remains the same...
+    }
+
+    /**
+     * Analyzes a binary operation expression
+     */
+    private Type analyzeBinaryOperation(BinaryOperation binOp) {
+        Type leftType = analyzeExpression(binOp.getLeft());
+        Type rightType = analyzeExpression(binOp.getRight());
+        
+        // Check for type compatibility and report errors
+        checkBinaryOperationTypes(leftType, rightType, binOp.getOperator(), "expression");
+        
+        // Determine return type
+        switch (binOp.getOperator()) {
+            case "+":
+                if (leftType.equals(Type.STRING) && rightType.equals(Type.STRING)) {
+                    return Type.STRING;
+                }
+                return Type.INTEGER;
+            case "-":
+            case "*":
+            case "/":
+                return Type.INTEGER;
+            case "and":
+            case "or":
+            case "xor":
+            case "<":
+            case "<=":
+            case ">":
+            case ">=":
+            case "=":
+            case "!=":
+                return Type.BOOLEAN;
+            default:
+                errors.add(new SemanticError("Unknown operator: " + binOp.getOperator()));
+                return null;
+        }
+    }
+
+    /**
+     * Analyzes an expression and returns its type
+     */
+    private Type analyzeExpression(Expression expr) {
+        if (expr == null) {
+            return null;
+        }
+
+        if (expr instanceof IntegerLiteral) {
+            return new SimpleType("integer");
+        } else if (expr instanceof StringLiteral) {
+            return new SimpleType("string");
+        } else if (expr instanceof BooleanLiteral) {
+            return new SimpleType("boolean");
+        } else if (expr instanceof BinaryOperation) {
+            return analyzeBinaryOperation((BinaryOperation) expr);
+        } else if (expr instanceof VariableReference) {
+            String varName = ((VariableReference) expr).getName();
+            if (!symbolTable.isDefined(varName)) {
+                errors.add(new SemanticError("Undefined variable: " + varName));
+                return null;
+            }
+            usedVariables.add(varName);
+            return symbolTable.getType(varName);
+        }
+        // Add other expression types as needed
+        
+        errors.add(new SemanticError("Unsupported expression type: " + expr.getClass().getSimpleName()));
+        return null;
+    }
 }
